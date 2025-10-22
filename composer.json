@@ -1,24 +1,28 @@
 {
-    "name": ":vendor_slug/:package_slug",
-    "description": ":package_description",
+    "name": "farbcodegmbh/laravel-evm",
+    "description": "This is my package laravel-evm",
     "keywords": [
-        ":vendor_name",
+        "farbcode",
         "laravel",
-        ":package_slug"
+        "laravel-evm"
     ],
-    "homepage": "https://github.com/:vendor_slug/:package_slug",
+    "homepage": "https://github.com/farbcodegmbh/laravel-evm",
     "license": "MIT",
     "authors": [
         {
-            "name": ":author_name",
-            "email": "author@domain.com",
+            "name": "Martin Weinschenk",
+            "email": "martin.weinschenk@farbcode.net",
             "role": "Developer"
         }
     ],
     "require": {
         "php": "^8.4",
+        "illuminate/contracts": "^11.0||^12.0",
+        "kornrunner/ethereum-address": "^0.3.0",
+        "kornrunner/keccak": "^1.1",
         "spatie/laravel-package-tools": "^1.16",
-        "illuminate/contracts": "^11.0||^12.0"
+        "web3p/ethereum-tx": "^0.4.3",
+        "web3p/web3.php": "^0.1.6"
     },
     "require-dev": {
         "laravel/pint": "^1.14",
@@ -30,18 +34,16 @@
         "pestphp/pest-plugin-laravel": "^4.0",
         "phpstan/extension-installer": "^1.4",
         "phpstan/phpstan-deprecation-rules": "^2.0",
-        "phpstan/phpstan-phpunit": "^2.0",
-        "spatie/laravel-ray": "^1.35"
+        "phpstan/phpstan-phpunit": "^2.0"
     },
     "autoload": {
         "psr-4": {
-            "VendorName\\Skeleton\\": "src/",
-            "VendorName\\Skeleton\\Database\\Factories\\": "database/factories/"
+            "Farbcode\\LaravelEvm\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "VendorName\\Skeleton\\Tests\\": "tests/",
+            "Farbcode\\LaravelEvm\\Tests\\": "tests/",
             "Workbench\\App\\": "workbench/app/"
         }
     },
@@ -63,10 +65,10 @@
     "extra": {
         "laravel": {
             "providers": [
-                "VendorName\\Skeleton\\SkeletonServiceProvider"
+                "Farbcode\\LaravelEvm\\LaravelEvmServiceProvider"
             ],
             "aliases": {
-                "Skeleton": "VendorName\\Skeleton\\Facades\\Skeleton"
+                "LaravelEvm": "Farbcode\\LaravelEvm\\Facades\\LaravelEvm"
             }
         }
     },
