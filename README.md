@@ -44,6 +44,36 @@ $res = $contract->call('isAnchored', [1, '0x'.$hashHex]);
 $jobId = $contract->sendAsync('anchor', [1, '0x'.$hashHex, 'meta']);
 ```
 
+### Generate new addresses
+
+The package ships with a helper to generate fresh Ethereum keypairs (using `kornrunner/ethereum-address`).
+
+Generate one address (JSON output):
+
+```bash
+php artisan evm:address:generate --json
+```
+
+Generate 3 addresses (table output):
+
+```bash
+php artisan evm:address:generate --count=3
+```
+
+Sample JSON response:
+
+```json
+[
+	{
+		"address": "0xAbcDEF1234...",
+		"private_key": "0x6f8d...64hex",
+		"public_key": "0x04b3...uncompressed"
+	}
+]
+```
+
+Security note: Private keys are shown once. Persist them securely (e.g. Vault, KMS). Never commit them.
+
 ## Testing
 
 ```bash

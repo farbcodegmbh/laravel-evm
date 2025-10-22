@@ -71,11 +71,16 @@ class SendTransaction implements ShouldQueue
             return;
         }
 
-        // First broadcast
-        $raw = new EIP1559Transaction($fields)->sign($pk);
-        $txHash = $rpc->call('eth_sendRawTransaction', [$raw]);
-        $nonces->markUsed($from, $nonce);
-        event(new TxBroadcasted($txHash, $fields));
+        // First broadcast with error handling
+        try {
+            $raw = new EIP1559Transaction($fields)->sign($pk);
+            $txHash = $rpc->call('eth_sendRawTransaction', [$raw]);
+            $nonces->markUsed($from, $nonce);
+            event(new TxBroadcasted($txHash, $fields));
+        } catch (\Throwable $e) {
+            event(new TxFailed($this->address, $this->data, 'rpc_send_error: '.$e->getMessage()));
+            return;
+        }
 
         $timeout = (int)($this->opts['timeout'] ?? $this->txCfg['confirm_timeout']);
         $pollMs = (int)($this->opts['poll_ms'] ?? $this->txCfg['poll_interval_ms']);
@@ -101,9 +106,14 @@ class SendTransaction implements ShouldQueue
             // Emit replacement attempt (before rebroadcast)
             event(new TxReplaced($oldTxHash, $fields, $i + 1));
 
-            $raw = new EIP1559Transaction($fields)->sign($pk);
-            $txHash = $rpc->call('eth_sendRawTransaction', [$raw]);
-            event(new TxBroadcasted($txHash, $fields));
+            try {
+                $raw = new EIP1559Transaction($fields)->sign($pk);
+                $txHash = $rpc->call('eth_sendRawTransaction', [$raw]);
+                event(new TxBroadcasted($txHash, $fields));
+            } catch (\Throwable $e) {
+                event(new TxFailed($this->address, $this->data, 'rpc_send_error_replacement_'.$i.': '.$e->getMessage()));
+                return;
+            }
 
             $deadline = time() + $timeout;
             while (time() < $deadline) {
@@ -116,6 +126,10 @@ class SendTransaction implements ShouldQueue
             }
         }
 
-        event(new TxFailed($this->address, $this->data, 'No receipt after attempts'));
+        event(new TxFailed(
+            $this->address,
+            $this->data,
+            sprintf('no_receipt_after_%d_replacements (last maxFee=%d priority=%d)', $maxRep, $fields['maxFeePerGas'], $fields['maxPriorityFeePerGas'])
+        ));
     }
 }
