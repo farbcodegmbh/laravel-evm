@@ -21,15 +21,15 @@ return [
     // Fee policy for EIP 1559.
     'fees' => [
         'min_priority_gwei' => env('EVM_MIN_PRIORITY_GWEI', 3),
-        'min_maxfee_gwei'   => env('EVM_MIN_MAXFEE_GWEI', 40),
-        'base_multiplier'   => env('EVM_BASE_MULTIPLIER', 3),
-        'replacement_factor'=> env('EVM_REPLACEMENT_FACTOR', 1.5),
+        'min_maxfee_gwei' => env('EVM_MIN_MAXFEE_GWEI', 40),
+        'base_multiplier' => env('EVM_BASE_MULTIPLIER', 3),
+        'replacement_factor' => env('EVM_REPLACEMENT_FACTOR', 1.5),
     ],
 
     // Transaction behavior.
     'tx' => [
         'estimate_padding' => env('EVM_ESTIMATE_PADDING', 1.2),
-        'confirm_timeout'  => env('EVM_CONFIRM_TIMEOUT', 120), // seconds
+        'confirm_timeout' => env('EVM_CONFIRM_TIMEOUT', 120), // seconds
         'max_replacements' => env('EVM_MAX_REPLACEMENTS', 2),
         'poll_interval_ms' => env('EVM_POLL_INTERVAL_MS', 800),
 

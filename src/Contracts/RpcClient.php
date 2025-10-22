@@ -1,5 +1,7 @@
 <?php
+
 // src/Contracts/RpcClient.php
+
 namespace Farbcode\LaravelEvm\Contracts;
 
 interface RpcClient
@@ -9,6 +11,8 @@ interface RpcClient
      * sowohl Hex-Strings (z.B. "0xabc123") als auch Arrays (Receipts etc.) zurückgeben.
      */
     public function call(string $method, array $params = []): mixed;
+
     public function callRaw(string $method, array $params = []): array;
+
     public function health(): array;
 }

@@ -3,10 +3,11 @@
 use Farbcode\LaravelEvm\Crypto\LocalNonceManager;
 
 it('increments nonce locally without refetching until markUsed', function () {
-    $mgr = new LocalNonceManager();
+    $mgr = new LocalNonceManager;
     $fetchCount = 0;
     $fetcher = function () use (&$fetchCount) {
         $fetchCount++;
+
         return 7; // starting nonce
     };
 

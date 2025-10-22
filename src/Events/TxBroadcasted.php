@@ -1,5 +1,7 @@
 <?php
+
 // src/Events/TxBroadcasted.php
+
 namespace Farbcode\LaravelEvm\Events;
 
 class TxBroadcasted

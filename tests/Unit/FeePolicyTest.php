@@ -11,7 +11,7 @@ it('suggests and replaces fees with increasing values', function () {
     ]);
 
     // base gas price ~ 100 gwei
-    [$prio, $max] = $policy->suggest(fn() => '0x'.dechex(100 * 1_000_000_000));
+    [$prio, $max] = $policy->suggest(fn () => '0x'.dechex(100 * 1_000_000_000));
     expect($prio)->toBeGreaterThan(0)->and($max)->toBeGreaterThan($prio);
 
     [$prio2, $max2] = $policy->replace($prio, $max);

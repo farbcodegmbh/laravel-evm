@@ -8,6 +8,7 @@ it('generates a single address in json or reports failure gracefully', function 
     if ($code !== 0) {
         // In rare environments (e.g., GMP/ECC edge) we accept graceful failure
         expect($out)->toContain('Failed to generate address');
+
         return;
     }
     $data = json_decode($out, true);

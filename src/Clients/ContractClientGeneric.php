@@ -2,38 +2,37 @@
 
 namespace Farbcode\LaravelEvm\Clients;
 
-use Farbcode\LaravelEvm\Contracts\RpcClient;
-use Farbcode\LaravelEvm\Contracts\Signer;
-use Farbcode\LaravelEvm\Contracts\NonceManager;
-use Farbcode\LaravelEvm\Contracts\FeePolicy;
-use Farbcode\LaravelEvm\Contracts\TxBuilder;
 use Farbcode\LaravelEvm\Contracts\AbiCodec;
 use Farbcode\LaravelEvm\Contracts\ContractClient;
-
+use Farbcode\LaravelEvm\Contracts\FeePolicy;
+use Farbcode\LaravelEvm\Contracts\NonceManager;
+use Farbcode\LaravelEvm\Contracts\RpcClient;
+use Farbcode\LaravelEvm\Contracts\Signer;
+use Farbcode\LaravelEvm\Contracts\TxBuilder;
 use Farbcode\LaravelEvm\Jobs\SendTransaction;
 
 class ContractClientGeneric implements ContractClient
 {
     public function __construct(
-        private RpcClient    $rpc,
-        private Signer       $signer,
+        private RpcClient $rpc,
+        private Signer $signer,
         private NonceManager $nonces,
-        private FeePolicy    $fees,
-        private TxBuilder    $builder,
-        private AbiCodec     $abi,
-        private int          $chainId,
-        private array        $txCfg
-    )
-    {
-    }
+        private FeePolicy $fees,
+        private TxBuilder $builder,
+        private AbiCodec $abi,
+        private int $chainId,
+        private array $txCfg
+    ) {}
 
     private string $address = '';
+
     private array|string $abiJson = [];
 
     public function at(string $address, array|string $abi = []): self
     {
         $this->address = $address;
         $this->abiJson = $abi;
+
         return $this;
     }
 
@@ -45,7 +44,7 @@ class ContractClientGeneric implements ContractClient
         return $this->rpc->call('eth_call', [[
             'from' => $from,
             'to' => $this->address,
-            'data' => $data
+            'data' => $data,
         ], 'latest']);
     }
 
@@ -55,17 +54,18 @@ class ContractClientGeneric implements ContractClient
         $est = $this->rpc->call('eth_estimateGas', [[
             'from' => $from,
             'to' => $this->address,
-            'data' => $data
+            'data' => $data,
         ]]);
-        $n = is_string($est) ? hexdec($est) : (int)$est;
-        $pad = (float)($this->txCfg['estimate_padding'] ?? 1.2);
-        return (int)max(150000, ceil($n * $pad));
+        $n = is_string($est) ? hexdec($est) : (int) $est;
+        $pad = (float) ($this->txCfg['estimate_padding'] ?? 1.2);
+
+        return (int) max(150000, ceil($n * $pad));
     }
 
     public function sendAsync(string $function, array $args = [], array $opts = []): string
     {
         $data = $this->abi->encodeFunction($this->abiJson, $function, $args);
-        $queue = (string)($this->txCfg['queue'] ?? 'evm-send');
+        $queue = (string) ($this->txCfg['queue'] ?? 'evm-send');
 
         return dispatch(
             new SendTransaction(
@@ -83,11 +83,12 @@ class ContractClientGeneric implements ContractClient
         $deadline = time() + $timeoutSec;
         while (time() < $deadline) {
             $rec = $this->rpc->call('eth_getTransactionReceipt', [$txHash]);
-            if (!empty($rec)) {
+            if (! empty($rec)) {
                 return $rec;
             }
             usleep($pollMs * 1000);
         }
+
         return null;
     }
 }

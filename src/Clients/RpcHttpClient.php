@@ -2,11 +2,11 @@
 
 namespace Farbcode\LaravelEvm\Clients;
 
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 use Farbcode\LaravelEvm\Contracts\RpcClient;
 use Farbcode\LaravelEvm\Exceptions\RpcException;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class RpcHttpClient implements RpcClient
 {
@@ -15,7 +15,9 @@ class RpcHttpClient implements RpcClient
      * Uses Laravel HTTP client with retry and timeout
      */
     protected array $urls;
+
     protected int $chainId;
+
     protected int $cursor = 0;
 
     public function __construct(array $urls, int $chainId)
@@ -39,9 +41,9 @@ class RpcHttpClient implements RpcClient
 
         $payload = [
             'jsonrpc' => '2.0',
-            'id'      => $id,
-            'method'  => $method,
-            'params'  => $params,
+            'id' => $id,
+            'method' => $method,
+            'params' => $params,
         ];
 
         $attempts = count($this->urls);
@@ -70,11 +72,12 @@ class RpcHttpClient implements RpcClient
                     if (is_array($json) && isset($json['error'])) {
                         $lastError = $json['error']['message'] ?? 'RPC error';
                         Log::warning('RPC error body', [
-                            'url'    => $url,
+                            'url' => $url,
                             'method' => $method,
-                            'id'     => $id,
-                            'error'  => $json['error'],
+                            'id' => $id,
+                            'error' => $json['error'],
                         ]);
+
                         // try next url
                         continue;
                     }
@@ -86,32 +89,33 @@ class RpcHttpClient implements RpcClient
                     // Unexpected body shape
                     $lastError = 'Invalid JSON body';
                     Log::warning('RPC invalid json', [
-                        'url'    => $url,
+                        'url' => $url,
                         'method' => $method,
-                        'id'     => $id,
-                        'body'   => $response->body(),
+                        'id' => $id,
+                        'body' => $response->body(),
                     ]);
+
                     continue;
                 }
 
                 // Non success HTTP
                 $lastError = 'HTTP '.$response->status();
                 Log::warning('RPC non success', [
-                    'url'    => $url,
+                    'url' => $url,
                     'method' => $method,
-                    'id'     => $id,
+                    'id' => $id,
                     'status' => $response->status(),
-                    'body'   => $response->body(),
+                    'body' => $response->body(),
                 ]);
                 // try next url
             } catch (\Throwable $e) {
                 // Network or timeout
                 $lastError = $e->getMessage();
                 Log::error('RPC exception', [
-                    'url'    => $url,
+                    'url' => $url,
                     'method' => $method,
-                    'id'     => $id,
-                    'error'  => $lastError,
+                    'id' => $id,
+                    'error' => $lastError,
                 ]);
                 // try next url
             }
@@ -146,7 +150,7 @@ class RpcHttpClient implements RpcClient
 
         return [
             'chainId' => is_string($idHex) ? hexdec($idHex) : (int) $idHex,
-            'block'   => is_string($bnHex) ? hexdec($bnHex) : (int) $bnHex,
+            'block' => is_string($bnHex) ? hexdec($bnHex) : (int) $bnHex,
         ];
     }
 }

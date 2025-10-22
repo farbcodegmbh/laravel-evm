@@ -2,9 +2,9 @@
 
 namespace Farbcode\LaravelEvm\Tests;
 
+use Farbcode\LaravelEvm\LaravelEvmServiceProvider;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Orchestra\Testbench\TestCase as Orchestra;
-use Farbcode\LaravelEvm\LaravelEvmServiceProvider;
 
 class TestCase extends Orchestra
 {

@@ -1,21 +1,22 @@
 <?php
+
 // src/Jobs/SendTransaction.php
 
 namespace Farbcode\LaravelEvm\Jobs;
 
+use Farbcode\LaravelEvm\Contracts\FeePolicy;
+use Farbcode\LaravelEvm\Contracts\NonceManager;
+use Farbcode\LaravelEvm\Contracts\RpcClient;
+use Farbcode\LaravelEvm\Contracts\Signer;
+use Farbcode\LaravelEvm\Events\TxBroadcasted;
+use Farbcode\LaravelEvm\Events\TxFailed;
+use Farbcode\LaravelEvm\Events\TxMined;
+use Farbcode\LaravelEvm\Events\TxQueued;
+use Farbcode\LaravelEvm\Events\TxReplaced;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Farbcode\LaravelEvm\Contracts\RpcClient;
-use Farbcode\LaravelEvm\Contracts\Signer;
-use Farbcode\LaravelEvm\Contracts\NonceManager;
-use Farbcode\LaravelEvm\Contracts\FeePolicy;
-use Farbcode\LaravelEvm\Events\TxQueued;
-use Farbcode\LaravelEvm\Events\TxBroadcasted;
-use Farbcode\LaravelEvm\Events\TxMined;
-use Farbcode\LaravelEvm\Events\TxFailed;
-use Farbcode\LaravelEvm\Events\TxReplaced;
 use Web3p\EthereumTx\EIP1559Transaction;
 
 /**
@@ -24,12 +25,9 @@ use Web3p\EthereumTx\EIP1559Transaction;
  */
 class SendTransaction implements ShouldQueue
 {
-    use Queueable, InteractsWithQueue, SerializesModels;
+    use InteractsWithQueue, Queueable, SerializesModels;
 
-    public function __construct(public string $address, public string $data, public array $opts, public int $chainId, public array $txCfg)
-    {
-
-    }
+    public function __construct(public string $address, public string $data, public array $opts, public int $chainId, public array $txCfg) {}
 
     public function handle(RpcClient $rpc, Signer $signer, NonceManager $nonces, FeePolicy $fees): void
     {
@@ -39,19 +37,20 @@ class SendTransaction implements ShouldQueue
 
         // Estimate gas with padding
         $est = $rpc->call('eth_estimateGas', [[
-            'from' => $from, 'to' => $this->address, 'data' => $this->data
+            'from' => $from, 'to' => $this->address, 'data' => $this->data,
         ]]);
-        $gas = (int)max(150000, ceil((is_string($est) ? hexdec($est) : (int)$est) * ($this->txCfg['estimate_padding'] ?? 1.2)));
+        $gas = (int) max(150000, ceil((is_string($est) ? hexdec($est) : (int) $est) * ($this->txCfg['estimate_padding'] ?? 1.2)));
 
         // Nonce
         $nonce = $nonces->getPendingNonce($from, function () use ($rpc, $from) {
             $n = $rpc->call('eth_getTransactionCount', [$from, 'pending']);
+
             return hexdec($n);
         });
 
         // Fees
         $gasPriceHex = $rpc->call('eth_gasPrice');
-        [$prio, $max] = $fees->suggest(fn() => $gasPriceHex);
+        [$prio, $max] = $fees->suggest(fn () => $gasPriceHex);
 
         $fields = [
             'chainId' => $this->chainId,
@@ -66,8 +65,9 @@ class SendTransaction implements ShouldQueue
         ];
 
         $pk = method_exists($signer, 'privateKey') ? $signer->privateKey() : null;
-        if (!$pk) {
+        if (! $pk) {
             event(new TxFailed($this->address, $this->data, 'Signer has no privateKey method'));
+
             return;
         }
 
@@ -77,15 +77,16 @@ class SendTransaction implements ShouldQueue
         $nonces->markUsed($from, $nonce);
         event(new TxBroadcasted($txHash, $fields));
 
-        $timeout = (int)($this->opts['timeout'] ?? $this->txCfg['confirm_timeout']);
-        $pollMs = (int)($this->opts['poll_ms'] ?? $this->txCfg['poll_interval_ms']);
-        $maxRep = (int)($this->opts['max_replacements'] ?? $this->txCfg['max_replacements']);
+        $timeout = (int) ($this->opts['timeout'] ?? $this->txCfg['confirm_timeout']);
+        $pollMs = (int) ($this->opts['poll_ms'] ?? $this->txCfg['poll_interval_ms']);
+        $maxRep = (int) ($this->opts['max_replacements'] ?? $this->txCfg['max_replacements']);
 
         $deadline = time() + $timeout;
         while (time() < $deadline) {
             $rec = $rpc->call('eth_getTransactionReceipt', [$txHash]);
-            if (!empty($rec)) {
+            if (! empty($rec)) {
                 event(new TxMined($txHash, $rec));
+
                 return;
             }
             usleep($pollMs * 1000);
@@ -108,8 +109,9 @@ class SendTransaction implements ShouldQueue
             $deadline = time() + $timeout;
             while (time() < $deadline) {
                 $rec = $rpc->call('eth_getTransactionReceipt', [$txHash]);
-                if (!empty($rec)) {
+                if (! empty($rec)) {
                     event(new TxMined($txHash, $rec));
+
                     return;
                 }
                 usleep($pollMs * 1000);
