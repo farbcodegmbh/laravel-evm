@@ -79,6 +79,7 @@ class SendTransaction implements ShouldQueue
             event(new TxBroadcasted($txHash, $fields));
         } catch (\Throwable $e) {
             event(new TxFailed($this->address, $this->data, 'rpc_send_error: '.$e->getMessage()));
+
             return;
         }
 
@@ -113,6 +114,7 @@ class SendTransaction implements ShouldQueue
                 event(new TxBroadcasted($txHash, $fields));
             } catch (\Throwable $e) {
                 event(new TxFailed($this->address, $this->data, 'rpc_send_error_replacement_'.$i.': '.$e->getMessage()));
+
                 return;
             }
 
