@@ -1,5 +1,7 @@
 <?php
+
 // src/Contracts/Signer.php
+
 namespace Farbcode\LaravelEvm\Contracts;
 
 interface Signer

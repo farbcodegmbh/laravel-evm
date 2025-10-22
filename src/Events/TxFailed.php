@@ -1,5 +1,7 @@
 <?php
+
 // src/Events/TxFailed.php
+
 namespace Farbcode\LaravelEvm\Events;
 
 class TxFailed

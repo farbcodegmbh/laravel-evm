@@ -1,40 +1,90 @@
 <?php
 
-use Illuminate\Support\Facades\Event;
+use Farbcode\LaravelEvm\Contracts\FeePolicy;
+use Farbcode\LaravelEvm\Contracts\NonceManager;
+use Farbcode\LaravelEvm\Contracts\RpcClient;
+use Farbcode\LaravelEvm\Contracts\Signer;
 use Farbcode\LaravelEvm\Jobs\SendTransaction;
+use Illuminate\Support\Facades\Event;
 use kornrunner\Ethereum\Address;
-use Farbcode\LaravelEvm\Contracts\{RpcClient, Signer, NonceManager, FeePolicy};
-use Farbcode\LaravelEvm\Events\{TxQueued, TxBroadcasted, TxMined, TxFailed, TxReplaced};
 
-class FakeSigner implements Signer {
+class FakeSigner implements Signer
+{
     public function __construct(private string $pk) {}
-    public function getAddress(): string { return new Address($this->pk)->get(); }
-    public function privateKey(): string { return $this->pk; }
+
+    public function getAddress(): string
+    {
+        return new Address($this->pk)->get();
+    }
+
+    public function privateKey(): string
+    {
+        return $this->pk;
+    }
 }
-class FakeNonce implements NonceManager {
+class FakeNonce implements NonceManager
+{
     private int $n = 5; // starting
-    public function getPendingNonce(string $address, callable $fetcher): int { return $this->n; }
-    public function markUsed(string $address, int $nonce): void { $this->n = $nonce + 1; }
+
+    public function getPendingNonce(string $address, callable $fetcher): int
+    {
+        return $this->n;
+    }
+
+    public function markUsed(string $address, int $nonce): void
+    {
+        $this->n = $nonce + 1;
+    }
 }
-class FakeFees implements FeePolicy {
-    public function suggest(callable $gasPriceFetcher): array { return [1_000_000_000, 50_000_000_000]; }
-    public function replace(int $oldPriority, int $oldMax): array { return [$oldPriority + 1_000_000_000, $oldMax + 10_000_000_000]; }
+class FakeFees implements FeePolicy
+{
+    public function suggest(callable $gasPriceFetcher): array
+    {
+        return [1_000_000_000, 50_000_000_000];
+    }
+
+    public function replace(int $oldPriority, int $oldMax): array
+    {
+        return [$oldPriority + 1_000_000_000, $oldMax + 10_000_000_000];
+    }
 }
-class FakeRpc implements RpcClient {
+class FakeRpc implements RpcClient
+{
     private int $sendCount = 0;
-    public function call(string $method, array $params = []): mixed {
-        if ($method === 'eth_estimateGas') { return '0x5208'; }
-        if ($method === 'eth_getTransactionCount') { return '0x5'; }
-        if ($method === 'eth_gasPrice') { return '0x2540be400'; }
-        if ($method === 'eth_sendRawTransaction') { $this->sendCount++; return '0xabc'.dechex($this->sendCount); }
+
+    public function call(string $method, array $params = []): mixed
+    {
+        if ($method === 'eth_estimateGas') {
+            return '0x5208';
+        }
+        if ($method === 'eth_getTransactionCount') {
+            return '0x5';
+        }
+        if ($method === 'eth_gasPrice') {
+            return '0x2540be400';
+        }
+        if ($method === 'eth_sendRawTransaction') {
+            $this->sendCount++;
+
+            return '0xabc'.dechex($this->sendCount);
+        }
         if ($method === 'eth_getTransactionReceipt') {
             // Mine only after second replacement attempt
             return $this->sendCount >= 3 ? ['status' => '0x1'] : [];
         }
+
         return [];
     }
-    public function callRaw(string $method, array $params = []): array { return []; }
-    public function health(): array { return ['chainId' => 137, 'block' => 123]; }
+
+    public function callRaw(string $method, array $params = []): array
+    {
+        return [];
+    }
+
+    public function health(): array
+    {
+        return ['chainId' => 137, 'block' => 123];
+    }
 }
 
 it('emits replacement events and eventually mines', function () {
@@ -49,7 +99,7 @@ it('emits replacement events and eventually mines', function () {
             'confirm_timeout' => 0, // immediate replacement pathway
             'max_replacements' => 3,
             'poll_interval_ms' => 50,
-            'queue' => 'evm-send'
+            'queue' => 'evm-send',
         ]
     );
 

@@ -14,6 +14,7 @@ class TxBuilderEip1559 implements TxBuilder
     public function build(array $fields): string
     {
         $tx = new EIP1559Transaction($fields);
+
         return $tx->serialize(); // unsigned RLP
     }
 

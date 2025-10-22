@@ -1,5 +1,7 @@
 <?php
+
 // src/Events/TxQueued.php
+
 namespace Farbcode\LaravelEvm\Events;
 
 class TxQueued

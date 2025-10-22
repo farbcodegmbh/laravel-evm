@@ -1,5 +1,7 @@
 <?php
+
 // src/Events/TxMined.php
+
 namespace Farbcode\LaravelEvm\Events;
 
 class TxMined

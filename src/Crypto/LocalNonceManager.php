@@ -1,5 +1,7 @@
 <?php
+
 // src/Crypto/LocalNonceManager.php
+
 namespace Farbcode\LaravelEvm\Crypto;
 
 use Farbcode\LaravelEvm\Contracts\NonceManager;
@@ -11,9 +13,10 @@ class LocalNonceManager implements NonceManager
     public function getPendingNonce(string $address, callable $fetcher): int
     {
         $addr = strtolower($address);
-        if (!array_key_exists($addr, $this->cache)) {
+        if (! array_key_exists($addr, $this->cache)) {
             $this->cache[$addr] = (int) $fetcher();
         }
+
         return $this->cache[$addr];
     }
 
