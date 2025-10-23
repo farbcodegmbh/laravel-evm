@@ -4,6 +4,7 @@
 
 namespace Farbcode\LaravelEvm\Commands;
 
+use Farbcode\LaravelEvm\LaravelEvm;
 use Illuminate\Console\Command;
 
 // Facade Alias
@@ -22,7 +23,7 @@ class EvmSendCommand extends Command
         $args = $this->argument('args');
         $timeout = (int) $this->option('timeout');
 
-        $jobId = Evm::at($addr, $abi)->sendAsync($fn, $args, ['timeout' => $timeout]);
+        $jobId = LaravelEvm::at($addr, $abi)->sendAsync($fn, $args, ['timeout' => $timeout]);
         $this->info('Queued job id '.$jobId);
         $this->info('Queue '.config('evm.tx.queue'));
 

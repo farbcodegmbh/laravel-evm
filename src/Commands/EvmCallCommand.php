@@ -4,6 +4,7 @@
 
 namespace Farbcode\LaravelEvm\Commands;
 
+use Farbcode\LaravelEvm\LaravelEvm;
 use Illuminate\Console\Command;
 
 // Facade Alias
@@ -21,7 +22,7 @@ class EvmCallCommand extends Command
         $fn = $this->argument('function');
         $args = $this->argument('args');
 
-        $res = Evm::at($addr, $abi)->call($fn, $args);
+        $res = LaravelEvm::at($addr, $abi)->call($fn, $args);
         $this->line(json_encode($res, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
         return self::SUCCESS;

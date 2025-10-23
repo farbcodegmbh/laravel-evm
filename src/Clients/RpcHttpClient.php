@@ -128,7 +128,7 @@ class RpcHttpClient implements RpcClient
      * Convenience wrapper returning the result field
      * Throws when the RPC response carries an error
      */
-    public function call(string $method, array $params = []): array
+    public function call(string $method, array $params = []): false|string
     {
         $json = $this->callRaw($method, $params);
 
@@ -136,8 +136,9 @@ class RpcHttpClient implements RpcClient
             throw new RpcException(is_array($json['error']) ? json_encode($json['error']) : (string) $json['error']);
         }
 
+
         // Some providers return already unwrapped arrays for simple calls
-        return $json['result'] ?? $json;
+        return isset($json['result']) && is_array($json['result']) ? json_encode($json['result']) : (string) ($json['result'] ?? $json);
     }
 
     /**
