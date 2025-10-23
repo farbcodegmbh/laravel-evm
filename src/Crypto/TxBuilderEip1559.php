@@ -14,8 +14,15 @@ class TxBuilderEip1559 implements TxBuilder
     public function build(array $fields): string
     {
         $tx = new EIP1559Transaction($fields);
-
-        return $tx->serialize(); // unsigned RLP
+        $serialized = $tx->serialize();
+        // Library returns Buffer implementing __toString(); cast directly without redundant is_object() check.
+        if (method_exists($serialized, '__toString')) {
+            $serialized = (string) $serialized;
+        }
+        if (!is_string($serialized)) {
+            throw new \RuntimeException('Unexpected serialized type for transaction');
+        }
+        return $serialized; // unsigned RLP hex
     }
 
     /**
@@ -26,7 +33,8 @@ class TxBuilderEip1559 implements TxBuilder
     {
         $tx = new EIP1559Transaction($fields);
         if (method_exists($tx, 'hash')) {
-            return $tx->hash(false);
+            // Only call hash() without arguments; do not force unsupported signatures.
+            return $tx->hash();
         }
         throw new \BadMethodCallException('Unsigned hash not supported by this EIP1559Transaction version');
     }

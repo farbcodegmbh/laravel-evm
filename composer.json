@@ -56,7 +56,7 @@
             "@composer run prepare"
         ],
         "prepare": "@php vendor/bin/testbench package:discover --ansi",
-        "analyse": "vendor/bin/phpstan analyse",
+        "analyse": "vendor/bin/phpstan analyse --memory-limit 2G",
         "test": "vendor/bin/pest",
         "test-coverage": "vendor/bin/pest --coverage",
         "format": "vendor/bin/pint",
@@ -85,7 +85,12 @@
                 "Farbcode\\LaravelEvm\\LaravelEvmServiceProvider"
             ],
             "aliases": {
-                "LaravelEvm": "Farbcode\\LaravelEvm\\Facades\\LaravelEvm"
+                "LaravelEvm": "Farbcode\\LaravelEvm\\Facades\\LaravelEvm",
+                "EvmContract": "Farbcode\\LaravelEvm\\Facades\\EvmContract",
+                "EvmRpc": "Farbcode\\LaravelEvm\\Facades\\EvmRpc",
+                "EvmSigner": "Farbcode\\LaravelEvm\\Facades\\EvmSigner",
+                "EvmFees": "Farbcode\\LaravelEvm\\Facades\\EvmFees",
+                "EvmNonce": "Farbcode\\LaravelEvm\\Facades\\EvmNonce"
             }
         }
     },

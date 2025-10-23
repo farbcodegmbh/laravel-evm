@@ -8,7 +8,6 @@ use Farbcode\LaravelEvm\Contracts\FeePolicy;
 use Farbcode\LaravelEvm\Contracts\NonceManager;
 use Farbcode\LaravelEvm\Contracts\RpcClient;
 use Farbcode\LaravelEvm\Contracts\Signer;
-use Farbcode\LaravelEvm\Contracts\TxBuilder;
 use Farbcode\LaravelEvm\Jobs\SendTransaction;
 
 class ContractClientGeneric implements ContractClient
@@ -16,9 +15,6 @@ class ContractClientGeneric implements ContractClient
     public function __construct(
         private RpcClient $rpc,
         private Signer $signer,
-        private NonceManager $nonces,
-        private FeePolicy $fees,
-        private TxBuilder $builder,
         private AbiCodec $abi,
         private int $chainId,
         private array $txCfg
@@ -67,15 +63,16 @@ class ContractClientGeneric implements ContractClient
         $data = $this->abi->encodeFunction($this->abiJson, $function, $args);
         $queue = (string) ($this->txCfg['queue'] ?? 'evm-send');
 
-        return dispatch(
-            new SendTransaction(
-                address: $this->address,
-                data: $data,
-                opts: $opts,
-                chainId: $this->chainId,
-                txCfg: $this->txCfg
-            )
-        )->onQueue($queue)->getJobId();
+        // Generate a pseudo job identifier (not the queue internal ID) for tracking
+        $requestId = \Illuminate\Support\Str::uuid()->toString();
+        dispatch(new SendTransaction(
+            address: $this->address,
+            data: $data,
+            opts: array_merge($opts, ['request_id' => $requestId]),
+            chainId: $this->chainId,
+            txCfg: $this->txCfg
+        ))->onQueue($queue);
+        return $requestId;
     }
 
     public function wait(string $txHash, int $timeoutSec = 120, int $pollMs = 800): ?array
