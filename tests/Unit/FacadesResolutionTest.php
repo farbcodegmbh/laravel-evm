@@ -10,12 +10,12 @@ it('resolves contract client facade', function () {
 
 it('resolves rpc client facade health', function () {
     $h = \EvmRpc::health();
-    expect($h)->toBeArray()->and($h)->toHaveKeys(['chainId','block']);
+    expect($h)->toBeArray()->and($h)->toHaveKeys(['chainId', 'block']);
 });
 
 it('resolves signer facade address', function () {
     try {
-    $addr = \EvmSigner::getAddress();
+        $addr = \EvmSigner::getAddress();
         expect($addr)->toStartWith('0x');
     } catch (Throwable $e) {
         // If no private key configured, we accept exception
@@ -24,11 +24,11 @@ it('resolves signer facade address', function () {
 });
 
 it('resolves fees facade suggest', function () {
-    $fees = \EvmFees::suggest(fn() => '0x3b9aca00');
+    $fees = \EvmFees::suggest(fn () => '0x3b9aca00');
     expect($fees)->toBeArray()->and(count($fees))->toBe(2);
 });
 
 it('resolves nonce facade initial', function () {
-    $n = \EvmNonce::getPendingNonce('0xabc', fn() => 5);
+    $n = \EvmNonce::getPendingNonce('0xabc', fn () => 5);
     expect($n)->toBe(5);
 });

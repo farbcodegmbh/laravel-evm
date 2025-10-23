@@ -19,9 +19,10 @@ class TxBuilderEip1559 implements TxBuilder
         if (method_exists($serialized, '__toString')) {
             $serialized = (string) $serialized;
         }
-        if (!is_string($serialized)) {
+        if (! is_string($serialized)) {
             throw new \RuntimeException('Unexpected serialized type for transaction');
         }
+
         return $serialized; // unsigned RLP hex
     }
 

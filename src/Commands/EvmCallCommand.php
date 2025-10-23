@@ -22,7 +22,7 @@ class EvmCallCommand extends Command
         $fn = $this->argument('function');
         $args = $this->argument('args');
 
-    $res = LaravelEvmFacade::at($addr, $abi)->call($fn, $args);
+        $res = LaravelEvmFacade::at($addr, $abi)->call($fn, $args);
         $this->line(json_encode($res, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
         return self::SUCCESS;

@@ -23,7 +23,7 @@ class EvmSendCommand extends Command
         $args = $this->argument('args');
         $timeout = (int) $this->option('timeout');
 
-    $jobId = LaravelEvmFacade::at($addr, $abi)->sendAsync($fn, $args, ['timeout' => $timeout]);
+        $jobId = LaravelEvmFacade::at($addr, $abi)->sendAsync($fn, $args, ['timeout' => $timeout]);
         $this->info('Queued job id '.$jobId);
         $this->info('Queue '.config('evm.tx.queue'));
 

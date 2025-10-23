@@ -2,8 +2,8 @@
 
 namespace Farbcode\LaravelEvm\Facades;
 
-use Illuminate\Support\Facades\Facade;
 use Farbcode\LaravelEvm\Contracts\Signer;
+use Illuminate\Support\Facades\Facade;
 
 class EvmSigner extends Facade
 {

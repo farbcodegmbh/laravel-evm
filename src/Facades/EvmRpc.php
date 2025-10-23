@@ -2,8 +2,8 @@
 
 namespace Farbcode\LaravelEvm\Facades;
 
-use Illuminate\Support\Facades\Facade;
 use Farbcode\LaravelEvm\Contracts\RpcClient;
+use Illuminate\Support\Facades\Facade;
 
 class EvmRpc extends Facade
 {

@@ -2,8 +2,8 @@
 
 namespace Farbcode\LaravelEvm\Facades;
 
-use Illuminate\Support\Facades\Facade;
 use Farbcode\LaravelEvm\Contracts\FeePolicy;
+use Illuminate\Support\Facades\Facade;
 
 class EvmFees extends Facade
 {

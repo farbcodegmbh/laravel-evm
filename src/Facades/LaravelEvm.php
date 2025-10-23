@@ -2,8 +2,8 @@
 
 namespace Farbcode\LaravelEvm\Facades;
 
-use Illuminate\Support\Facades\Facade;
 use Farbcode\LaravelEvm\Contracts\ContractClient;
+use Illuminate\Support\Facades\Facade;
 
 /**
  * Primary convenience facade matching legacy alias LaravelEvm.

@@ -4,8 +4,6 @@ namespace Farbcode\LaravelEvm\Clients;
 
 use Farbcode\LaravelEvm\Contracts\AbiCodec;
 use Farbcode\LaravelEvm\Contracts\ContractClient;
-use Farbcode\LaravelEvm\Contracts\FeePolicy;
-use Farbcode\LaravelEvm\Contracts\NonceManager;
 use Farbcode\LaravelEvm\Contracts\RpcClient;
 use Farbcode\LaravelEvm\Contracts\Signer;
 use Farbcode\LaravelEvm\Jobs\SendTransaction;
@@ -72,6 +70,7 @@ class ContractClientGeneric implements ContractClient
             chainId: $this->chainId,
             txCfg: $this->txCfg
         ))->onQueue($queue);
+
         return $requestId;
     }
 
