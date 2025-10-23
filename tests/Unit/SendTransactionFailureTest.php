@@ -1,34 +1,80 @@
 <?php
 
-use Illuminate\Support\Facades\Event;
-use Farbcode\LaravelEvm\Jobs\SendTransaction;
+use Farbcode\LaravelEvm\Contracts\FeePolicy;
+use Farbcode\LaravelEvm\Contracts\NonceManager;
+use Farbcode\LaravelEvm\Contracts\RpcClient;
+use Farbcode\LaravelEvm\Contracts\Signer;
 use Farbcode\LaravelEvm\Events\TxFailed;
-use Farbcode\LaravelEvm\Contracts\{RpcClient, Signer, NonceManager, FeePolicy};
+use Farbcode\LaravelEvm\Jobs\SendTransaction;
+use Illuminate\Support\Facades\Event;
 
-class FFailSigner implements Signer {
+class FFailSigner implements Signer
+{
     public function __construct(private string $pk) {}
-    public function getAddress(): string { return '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef'; }
-    public function privateKey(): string { return $this->pk; }
+
+    public function getAddress(): string
+    {
+        return '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef';
+    }
+
+    public function privateKey(): string
+    {
+        return $this->pk;
+    }
 }
-class FFailNonce implements NonceManager {
-    public function getPendingNonce(string $address, callable $fetcher): int { return 1; }
+class FFailNonce implements NonceManager
+{
+    public function getPendingNonce(string $address, callable $fetcher): int
+    {
+        return 1;
+    }
+
     public function markUsed(string $address, int $nonce): void {}
 }
-class FFailFees implements FeePolicy {
-    public function suggest(callable $gasPriceFetcher): array { return [1_000_000_000, 50_000_000_000]; }
-    public function replace(int $oldPriority, int $oldMax): array { return [$oldPriority + 1_000_000_000, $oldMax + 10_000_000_000]; }
+class FFailFees implements FeePolicy
+{
+    public function suggest(callable $gasPriceFetcher): array
+    {
+        return [1_000_000_000, 50_000_000_000];
+    }
+
+    public function replace(int $oldPriority, int $oldMax): array
+    {
+        return [$oldPriority + 1_000_000_000, $oldMax + 10_000_000_000];
+    }
 }
-class FFailRpc implements RpcClient {
-    public function call(string $method, array $params = []): mixed {
-        if ($method === 'eth_estimateGas') { return '0x5208'; }
-        if ($method === 'eth_getTransactionCount') { return '0x1'; }
-        if ($method === 'eth_gasPrice') { return '0x3b9aca00'; }
-        if ($method === 'eth_getTransactionReceipt') { return []; }
-        if ($method === 'eth_sendRawTransaction') { throw new RuntimeException('simulated failure'); }
+class FFailRpc implements RpcClient
+{
+    public function call(string $method, array $params = []): mixed
+    {
+        if ($method === 'eth_estimateGas') {
+            return '0x5208';
+        }
+        if ($method === 'eth_getTransactionCount') {
+            return '0x1';
+        }
+        if ($method === 'eth_gasPrice') {
+            return '0x3b9aca00';
+        }
+        if ($method === 'eth_getTransactionReceipt') {
+            return [];
+        }
+        if ($method === 'eth_sendRawTransaction') {
+            throw new RuntimeException('simulated failure');
+        }
+
         return [];
     }
-    public function callRaw(string $method, array $params = []): array { return []; }
-    public function health(): array { return ['chainId' => 137, 'block' => 123]; }
+
+    public function callRaw(string $method, array $params = []): array
+    {
+        return [];
+    }
+
+    public function health(): array
+    {
+        return ['chainId' => 137, 'block' => 123];
+    }
 }
 
 it('emits TxFailed on initial broadcast error', function () {
@@ -43,10 +89,10 @@ it('emits TxFailed on initial broadcast error', function () {
             'confirm_timeout' => 0,
             'max_replacements' => 0,
             'poll_interval_ms' => 50,
-            'queue' => 'evm-send'
+            'queue' => 'evm-send',
         ]
     );
-    $job->handle(new FFailRpc(), new FFailSigner('0x'.str_repeat('aa',32)), new FFailNonce(), new FFailFees());
+    $job->handle(new FFailRpc, new FFailSigner('0x'.str_repeat('aa', 32)), new FFailNonce, new FFailFees);
     Event::assertDispatched(TxFailed::class, function ($e) {
         return str_contains($e->reason, 'rpc_send_error');
     });
