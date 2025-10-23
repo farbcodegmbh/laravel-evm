@@ -24,25 +24,34 @@ php artisan vendor:publish --tag="laravel-evm-config"
 
 
 ## env
- EVM_CHAIN_ID=137
- EVM_RPC_1=https://polygon-mainnet.g.alchemy.com/v2/KEY
- EVM_PRIVATE_KEY=0xabc123...64hex
- QUEUE_CONNECTION=redis
+```dotenv
+EVM_CHAIN_ID=137
+EVM_RPC_1=https://polygon-mainnet.g.alchemy.com/v2/KEY
+EVM_PRIVATE_KEY=0xabc123...64hex
+QUEUE_CONNECTION=redis
+```
 
-## Usage
+## Usage (Quick Glimpse)
 
 ```php
 use LaravelEvm; // Facade alias defined in composer.json
 
-$abi = file_get_contents(storage_path('app/abi/IntegrityAnchorSimple.abi.json'));
+$abi = file_get_contents(storage_path('app/abi/MyContract.abi.json'));
 $contract = LaravelEvm::at('0xYourContract', $abi);
 
-// read
-$res = $contract->call('isAnchored', [1, '0x'.$hashHex]);
+// Read call
+$balance = $contract->call('balanceOf', ['0xUser']);
 
-// write non blocking
-$jobId = $contract->sendAsync('anchor', [1, '0x'.$hashHex, 'meta']);
+// Write (async)
+$jobId = $contract->sendAsync('transfer', ['0xRecipient', 100]);
 ```
+
+Wait for a known tx hash:
+```php
+$receipt = $contract->wait('0xTxHash');
+```
+
+More examples & full documentation: See the VitePress docs in `docs/pages` or visit the published site.
 
 ### Generate new addresses
 
@@ -73,6 +82,28 @@ Sample JSON response:
 ```
 
 Security note: Private keys are shown once. Persist them securely (e.g. Vault, KMS). Never commit them.
+
+### Facades Overview
+
+Facade aliases (registered in `composer.json`):
+
+| Facade | Binding |
+|--------|---------|
+| `LaravelEvm` | ContractClient |
+| `EvmContract` | ContractClient |
+| `EvmRpc` | RpcClient |
+| `EvmSigner` | Signer |
+| `EvmFees` | FeePolicy |
+| `EvmNonce` | NonceManager |
+
+Example usage:
+```php
+$symbol = \LaravelEvm::at('0xContract', $abi)->call('symbol');
+$health = \EvmRpc::health();
+$address = \EvmSigner::getAddress();
+// Suggest fees (implement suggest() if missing in your FeePolicy)
+// $fees = \EvmFees::suggest();
+```
 
 ## Testing
 
