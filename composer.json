@@ -1,6 +1,6 @@
 {
     "name": "farbcodegmbh/laravel-evm",
-    "description": "This is my package laravel-evm",
+    "description": "Simple, Reliable Ethereum Integration for Laravel",
     "keywords": [
         "farbcode",
         "laravel",
@@ -44,9 +44,7 @@
     "autoload-dev": {
         "psr-4": {
             "Farbcode\\LaravelEvm\\Tests\\": "tests/",
-            "Workbench\\App\\": "workbench/app/",
-            "Workbench\\Database\\Factories\\": "workbench/database/factories/",
-            "Workbench\\Database\\Seeders\\": "workbench/database/seeders/"
+            "Workbench\\App\\": "workbench/app/"
         }
     },
     "scripts": {
@@ -83,15 +81,7 @@
         "laravel": {
             "providers": [
                 "Farbcode\\LaravelEvm\\LaravelEvmServiceProvider"
-            ],
-            "aliases": {
-                "EvmContract": "Farbcode\\LaravelEvm\\Facades\\EvmContract",
-                "EvmRpc": "Farbcode\\LaravelEvm\\Facades\\EvmRpc",
-                "EvmSigner": "Farbcode\\LaravelEvm\\Facades\\EvmSigner",
-                "EvmFees": "Farbcode\\LaravelEvm\\Facades\\EvmFees",
-                "EvmNonce": "Farbcode\\LaravelEvm\\Facades\\EvmNonce",
-                "EvmLogs": "Farbcode\\LaravelEvm\\Facades\\EvmLogs"
-            }
+            ]
         }
     },
     "minimum-stability": "dev",

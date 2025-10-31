@@ -2,9 +2,10 @@
 
 namespace Workbench\App\Console\Commands;
 
+use Farbcode\LaravelEvm\Clients\RpcHttpClient;
+use Farbcode\LaravelEvm\Contracts\RpcClient;
+use Farbcode\LaravelEvm\Facades\EvmRpc;
 use Farbcode\LaravelEvm\Facades\LaravelEvm;
-use Farbcode\LaravelEvm\Facades\EvmLogs;
-use Farbcode\LaravelEvm\Support\LogFilterBuilder;
 use Illuminate\Console\Command;
 
 class EvmCallCommand extends Command
@@ -23,12 +24,15 @@ class EvmCallCommand extends Command
         $abi = file_get_contents($abiPath);
         $contract = LaravelEvm::at('0x370E67feF90F06fD3fAB7B7B41d9BFAEd01329A9', $abi);
 
+        $this->info("Health: ". print_r(EvmRpc::health(),true));
+
         $result = $contract->call('message');
-        $this->info('Raw: ' . $result->raw());
         $this->info('String: ' . $result->as('string'));
 
-        $jobId = $contract->sendAsync("update", ['Hello from Laravel EVM!']);
-        $this->info('jobId: ' . $jobId);
+        $rand = random_int(1, 1000);
+        $jobId = $contract->sendAsync("update", ['Hello from Laravel EVM! '.$rand]);
+        $this->info('jobId: ' . $jobId. ", random number: ".$rand);
+
 
         /*        $logs = EvmLogs::query()
             ->fromBlock(18_000_000)

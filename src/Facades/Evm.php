@@ -6,7 +6,6 @@ use Farbcode\LaravelEvm\Contracts\ContractClient;
 use Illuminate\Support\Facades\Facade;
 
 /**
- * Primary convenience facade matching legacy alias LaravelEvm.
  * Provides access to the ContractClient.
  *
  * @method static \Farbcode\LaravelEvm\Contracts\ContractClient at(string $address, array|string $abi = [])
@@ -15,7 +14,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static ?array wait(string $txHash, int $timeoutSec = 120, int $pollMs = 800)
  * @method static int estimateGas(string $data, ?string $from = null)
  */
-class LaravelEvm extends Facade
+class Evm extends Facade
 {
     protected static function getFacadeAccessor(): string
     {
