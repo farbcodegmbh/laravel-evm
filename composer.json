@@ -85,12 +85,12 @@
                 "Farbcode\\LaravelEvm\\LaravelEvmServiceProvider"
             ],
             "aliases": {
-                "LaravelEvm": "Farbcode\\LaravelEvm\\Facades\\LaravelEvm",
                 "EvmContract": "Farbcode\\LaravelEvm\\Facades\\EvmContract",
                 "EvmRpc": "Farbcode\\LaravelEvm\\Facades\\EvmRpc",
                 "EvmSigner": "Farbcode\\LaravelEvm\\Facades\\EvmSigner",
                 "EvmFees": "Farbcode\\LaravelEvm\\Facades\\EvmFees",
-                "EvmNonce": "Farbcode\\LaravelEvm\\Facades\\EvmNonce"
+                "EvmNonce": "Farbcode\\LaravelEvm\\Facades\\EvmNonce",
+                "EvmLogs": "Farbcode\\LaravelEvm\\Facades\\EvmLogs"
             }
         }
     },
