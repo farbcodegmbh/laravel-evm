@@ -121,7 +121,7 @@ class RpcHttpClient implements RpcClient
             }
         }
 
-        throw new RpcException('All RPC endpoints failed '.$lastError);
+        throw new RpcException('All RPC endpoints failed. Error: '.$lastError);
     }
 
     /**
@@ -142,10 +142,7 @@ class RpcHttpClient implements RpcClient
             return $json;
         }
 
-        $result = $json['result'];
-
-        // Return arrays directly (e.g. receipts) and scalars/hex as-is.
-        return $result;
+        return $json['result'];
     }
 
     /**
@@ -157,6 +154,7 @@ class RpcHttpClient implements RpcClient
         $bnHex = $this->call('eth_blockNumber');
 
         return [
+            'rpc_urls' => implode(', ', $this->urls),
             'chainId' => is_string($idHex) ? hexdec($idHex) : (int) $idHex,
             'block' => is_string($bnHex) ? hexdec($bnHex) : (int) $bnHex,
         ];
@@ -168,10 +166,11 @@ class RpcHttpClient implements RpcClient
     public function getLogs(array $filter): array
     {
         // Basic validation: require either blockHash or fromBlock/toBlock pair.
-        if (!isset($filter['blockHash']) && !isset($filter['fromBlock']) && !isset($filter['toBlock'])) {
+        if (! isset($filter['blockHash']) && ! isset($filter['fromBlock']) && ! isset($filter['toBlock'])) {
             throw new \InvalidArgumentException('getLogs filter requires blockHash or fromBlock/toBlock');
         }
         $res = $this->call('eth_getLogs', [$filter]);
+
         return is_array($res) ? $res : [];
     }
 }
