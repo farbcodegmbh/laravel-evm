@@ -2,9 +2,17 @@
     "name": "farbcodegmbh/laravel-evm",
     "description": "Simple, Reliable Ethereum Integration for Laravel",
     "keywords": [
-        "farbcode",
         "laravel",
-        "laravel-evm"
+        "laravel-evm",
+        "ethereum",
+        "evm",
+        "blockchain",
+        "smart-contracts",
+        "polygon",
+        "eip-1559",
+        "web3",
+        "laravel-package",
+        "rpc"
     ],
     "homepage": "https://github.com/farbcodegmbh/laravel-evm",
     "license": "MIT",
@@ -25,16 +33,16 @@
         "web3p/web3.php": "^0.3.2"
     },
     "require-dev": {
-        "larastan/larastan": "^3.0",
         "laravel/pint": "^1.14",
-        "nunomaduro/collision": "^8.8",
-        "orchestra/testbench": "^10.6",
-        "pestphp/pest": "^4.0",
-        "pestphp/pest-plugin-arch": "^4.0",
-        "pestphp/pest-plugin-laravel": "^4.0",
-        "phpstan/extension-installer": "^1.4",
-        "phpstan/phpstan-deprecation-rules": "^2.0",
-        "phpstan/phpstan-phpunit": "^2.0"
+        "nunomaduro/collision": "^8.1.1||^7.10.0",
+        "larastan/larastan": "^2.9||^3.0",
+        "orchestra/testbench": "^10.0.0||^9.0.0||^8.22.0",
+        "pestphp/pest": "^3.0",
+        "pestphp/pest-plugin-arch": "^3.0",
+        "pestphp/pest-plugin-laravel": "^3.0",
+        "phpstan/extension-installer": "^1.3||^2.0",
+        "phpstan/phpstan-deprecation-rules": "^1.1||^2.0",
+        "phpstan/phpstan-phpunit": "^1.3||^2.0"
     },
     "autoload": {
         "psr-4": {
