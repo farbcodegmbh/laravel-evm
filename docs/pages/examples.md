@@ -93,5 +93,34 @@ If you detect repeated replacements:
 ## 14. Fee Escalation Monitoring
 Listen to `TxReplaced` and log attempt number and fee delta.
 
+## 15. Fetch and Decode Event Logs
+```php
+use EvmLogs; // facade
+use Farbcode\LaravelEvm\Support\LogFilterBuilder;
+
+$abi = file_get_contents(storage_path('app/abi/ERC20.abi.json'));
+$logs = EvmLogs::query()
+    ->fromBlock(18_000_000)
+    ->toBlock('latest')
+    ->address('0xTokenAddress')
+    ->eventByAbi($abi, 'Transfer')
+    ->topic(1, LogFilterBuilder::padAddress('0xSender'))
+    ->get();
+
+$decoded = array_map(fn($l) => LogFilterBuilder::decodeEvent($abi, $l), $logs);
+```
+OR topic match & wildcard:
+```php
+$logs = EvmLogs::query()
+    ->fromBlock('latest')
+    ->address(['0xTokenA','0xTokenB'])
+    ->event('Transfer(address,address,uint256)')
+    ->topicAny(1, [LogFilterBuilder::padAddress($addr1), LogFilterBuilder::padAddress($addr2)])
+    ->topicWildcard(2)
+    ->get();
+```
+
+Performance tip: split large ranges into windows for high-volume contracts.
+
 ---
 Next: [Transactions](/pages/transactions) | Previous: [Facades](/pages/facades)

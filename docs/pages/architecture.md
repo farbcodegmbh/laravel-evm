@@ -103,3 +103,16 @@ Queue concurrency MUST be limited per address. Recommended: single worker for si
 - Plug-in system for fee strategies.
 - Configurable receipt polling backoff.
 - Adaptive RPC selection based on latency.
+
+## Log Filtering & Event Decoding
+A dedicated fluent builder (`LogFilterBuilder`) powers the `EvmLogs` facade for convenient retrieval and optional decoding of contract events:
+- `event('Transfer(address,address,uint256)')` sets topic0 (keccak hash of signature).
+- `eventByAbi($abi, 'Transfer')` resolves the signature from an ABI entry.
+- `topic(i, value)` / `topicAny(i, [...])` / `topicWildcard(i)` for selective indexed filtering.
+- `padAddress($addr)` produces a 32-byte padded address topic value.
+- `decodeEvent($abi, $log)` returns associative array of decoded indexed + non-indexed params (static types only).
+
+This keeps raw log querying decoupled from higher level transaction flow and enables post-processing / analytics (e.g. U18 election vote counting) without re‑implementing filtering logic.
+
+## Added Facade: EvmLogs
+The `EvmLogs` facade resolves the builder (container binding: `LogFilterBuilder::class`). It integrates seamlessly with other components and uses the already configured `RpcClient` for network access.

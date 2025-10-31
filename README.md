@@ -83,6 +83,21 @@ Sample JSON response:
 
 Security note: Private keys are shown once. Persist them securely (e.g. Vault, KMS). Never commit them.
 
+### Log Filtering & Event Decoding
+```php
+use EvmLogs;
+use Farbcode\LaravelEvm\Support\LogFilterBuilder;
+$abi = file_get_contents(storage_path('app/abi/ERC20.abi.json'));
+$logs = EvmLogs::query()
+    ->fromBlock(18_000_000)
+    ->toBlock('latest')
+    ->address('0xToken')
+    ->eventByAbi($abi, 'Transfer')
+    ->topicAny(1, [LogFilterBuilder::padAddress($addrA), LogFilterBuilder::padAddress($addrB)])
+    ->get();
+$decoded = array_map(fn($l) => LogFilterBuilder::decodeEvent($abi, $l), $logs);
+```
+
 ### Facades Overview
 
 Facade aliases (registered in `composer.json`):
@@ -95,6 +110,7 @@ Facade aliases (registered in `composer.json`):
 | `EvmSigner` | Signer |
 | `EvmFees` | FeePolicy |
 | `EvmNonce` | NonceManager |
+| `EvmLogs` | LogFilterBuilder |
 
 Example usage:
 ```php
@@ -104,6 +120,32 @@ $address = \EvmSigner::getAddress();
 // Suggest fees (implement suggest() if missing in your FeePolicy)
 // $fees = \EvmFees::suggest();
 ```
+
+### Chainable Casting
+
+`call()` now returns the client instance for fluent casting. Raw hex is stored internally. Use `result()` to fetch it, then `as(type)` to cast.
+
+```php
+$contract = \LaravelEvm::at('0xContract', $abi)->call('name');
+$raw = $contract->result(); // e.g. 0x0000...
+$name = $contract->as('string'); // decoded
+
+$owner = $contract->call('owner')->as('address');
+$supply = $contract->call('totalSupply')->as('uint');
+$flag = $contract->call('isActive')->as('bool');
+```
+
+Supported types: `string`, `address`, `uint|uint256`, `bool`, `bytes32` (returns hex). Unknown types fall back to raw value.
+
+### Signer Robustness & Environment
+
+Address derivation uses secp256k1 (via `kornrunner/ethereum-address`). On some PHP patch builds older GMP versions can throw a `ValueError` during point math with edge-case keys. Recommendations:
+1. Use a freshly generated private key (command above) – most issues disappear.
+2. Prefer latest PHP patch (8.4.x) where GMP edge cases are fixed.
+3. If derivation fails, you will get a `SignerException` with a clear message; do not bypass by hardcoding a mismatched address (nonce and signatures become inconsistent).
+4. For read-only calls in future you can implement a custom Signer driver returning only `getAddress()` without signing logic.
+
+If you consistently see overflow errors, open an issue with your PHP version, GMP version, and the (non-sensitive) pattern of the key (do NOT share the full private key). This helps us improve cross-version resilience without adding unsafe fallbacks.
 
 ## Testing
 

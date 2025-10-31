@@ -1,12 +1,18 @@
 import { defineConfig } from 'vitepress';
+import pkg from '../package.json'
 
 export default defineConfig({
   title: 'Laravel EVM',
   description: 'Reliable EVM interaction for Laravel (contracts, async transactions, fees, nonces, multi-RPC)',
-  srcDir: '.',
-  outDir: '../build/docs',
+  srcDir: './pages',
   cleanUrls: true,
   lastUpdated: true,
+  markdown: {
+        theme: {
+            light: 'github-light',
+            dark: 'github-dark'
+        }
+    },
   themeConfig: {
     nav: [
       { text: 'Guide', link: '/pages/README' },
@@ -60,7 +66,7 @@ export default defineConfig({
     ],
     footer: {
       message: 'MIT Licensed',
-      copyright: 'Copyright © 2025 Farbcode GmbH'
+      copyright: 'Copyright © 2025 //farbcode GmbH'
     }
   }
 });
