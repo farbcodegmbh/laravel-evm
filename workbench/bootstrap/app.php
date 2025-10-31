@@ -14,6 +14,8 @@ return Application::configure(basePath: $APP_BASE_PATH ?? default_skeleton_path(
     ->withMiddleware(function (Middleware $middleware) {
         //
     })
+    ->withEvents()
+    ->withProviders()
     ->withExceptions(function (Exceptions $exceptions) {
         //
     })->create();
