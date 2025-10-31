@@ -34,17 +34,21 @@ class EvmBumpCommand extends Command
                 $nonce = $pending - 1; // last pending
             } else {
                 $this->error('No pending transactions detected (pending == latest). Use --nonce to force replacement.');
+
                 return self::FAILURE;
             }
         }
         if ($nonce < 0) {
             $this->error('Calculated nonce is negative; abort.');
+
             return self::FAILURE;
         }
 
         // Optional original tx fetch
         $origHash = $this->option('original');
-        $origPriority = null; $origMaxFee = null; $origGas = null;
+        $origPriority = null;
+        $origMaxFee = null;
+        $origGas = null;
         if ($origHash) {
             try {
                 $orig = $rpc->call('eth_getTransactionByHash', [$origHash]);
@@ -113,6 +117,7 @@ class EvmBumpCommand extends Command
         $rpcChain = is_string($rpcChainHex) ? hexdec($rpcChainHex) : (int) $rpcChainHex;
         if ($rpcChain !== $chainId && ! $this->option('dry-run')) {
             $this->error('ChainId mismatch: local='.$chainId.' remote='.$rpcChain.' (abort)');
+
             return self::FAILURE;
         }
 
@@ -135,7 +140,7 @@ class EvmBumpCommand extends Command
             $maxFee,
             $gasLimit,
         ]];
-        $this->table(['nonce','priority','maxFee','gasLimit'], $rows);
+        $this->table(['nonce', 'priority', 'maxFee', 'gasLimit'], $rows);
         if ($origPriority !== null) {
             $this->info('Original priority: '.$origPriority.' original maxFee: '.$origMaxFee.' original gas: '.$origGas);
         }
@@ -149,8 +154,10 @@ class EvmBumpCommand extends Command
                 $this->line($rawHex);
             } catch (\Throwable $e) {
                 $this->error('Dry-run signing failed: '.$e->getMessage());
+
                 return self::FAILURE;
             }
+
             return self::SUCCESS;
         }
 
@@ -172,6 +179,7 @@ class EvmBumpCommand extends Command
                     $this->line('If original tx fees unknown, start with factor 3-5 or specify --priority / --max manually.');
                 }
             }
+
             return self::FAILURE;
         }
 

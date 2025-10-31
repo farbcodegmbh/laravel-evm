@@ -20,6 +20,7 @@ class PrivateKeySigner implements Signer
     public function getAddress(): string
     {
         $address = new Address(ltrim($this->privateKey, '0x'));
+
         return '0x'.$address->get();
     }
 

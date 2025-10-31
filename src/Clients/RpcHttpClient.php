@@ -168,10 +168,11 @@ class RpcHttpClient implements RpcClient
     public function getLogs(array $filter): array
     {
         // Basic validation: require either blockHash or fromBlock/toBlock pair.
-        if (!isset($filter['blockHash']) && !isset($filter['fromBlock']) && !isset($filter['toBlock'])) {
+        if (! isset($filter['blockHash']) && ! isset($filter['fromBlock']) && ! isset($filter['toBlock'])) {
             throw new \InvalidArgumentException('getLogs filter requires blockHash or fromBlock/toBlock');
         }
         $res = $this->call('eth_getLogs', [$filter]);
+
         return is_array($res) ? $res : [];
     }
 }

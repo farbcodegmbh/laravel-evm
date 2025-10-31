@@ -75,7 +75,11 @@ class FFailRpc implements RpcClient
     {
         return ['chainId' => 137, 'block' => 123];
     }
-    public function getLogs(array $filter): array { return []; }
+
+    public function getLogs(array $filter): array
+    {
+        return [];
+    }
 }
 
 it('emits TxFailed on initial broadcast error', function () {

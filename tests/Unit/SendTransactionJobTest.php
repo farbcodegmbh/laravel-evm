@@ -85,7 +85,11 @@ class FakeRpc implements RpcClient
     {
         return ['chainId' => 137, 'block' => 123];
     }
-    public function getLogs(array $filter): array { return []; }
+
+    public function getLogs(array $filter): array
+    {
+        return [];
+    }
 }
 
 it('emits replacement events and eventually mines', function () {
