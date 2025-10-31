@@ -59,10 +59,12 @@ class SendTransaction implements ShouldQueue
             'maxFeePerGas' => $max,
             'gas' => $gas,
             'to' => $this->address,
+            'from' => $from,
             'value' => 0,
             'data' => $this->data,
             'accessList' => [],
         ];
+
 
         $pk = method_exists($signer, 'privateKey') ? $signer->privateKey() : null;
         if (! $pk) {
@@ -74,9 +76,11 @@ class SendTransaction implements ShouldQueue
         // First broadcast with error handling
         try {
             $raw = new EIP1559Transaction($fields)->sign($pk);
-            $txHash = $rpc->call('eth_sendRawTransaction', [$raw]);
+            $rawHex = str_starts_with($raw, '0x') ? $raw : '0x'.$raw; // ensure 0x prefix
+            $txHash = $rpc->call('eth_sendRawTransaction', [$rawHex]);
             $nonces->markUsed($from, $nonce);
             event(new TxBroadcasted($txHash, $fields));
+
         } catch (\Throwable $e) {
             event(new TxFailed($this->address, $this->data, 'rpc_send_error: '.$e->getMessage()));
 
@@ -110,7 +114,8 @@ class SendTransaction implements ShouldQueue
 
             try {
                 $raw = new EIP1559Transaction($fields)->sign($pk);
-                $txHash = $rpc->call('eth_sendRawTransaction', [$raw]);
+                $rawHex = str_starts_with($raw, '0x') ? $raw : '0x'.$raw; // ensure 0x prefix
+                $txHash = $rpc->call('eth_sendRawTransaction', [$rawHex]);
                 event(new TxBroadcasted($txHash, $fields));
             } catch (\Throwable $e) {
                 event(new TxFailed($this->address, $this->data, 'rpc_send_error_replacement_'.$i.': '.$e->getMessage()));

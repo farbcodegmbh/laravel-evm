@@ -22,8 +22,12 @@ class EvmCallCommand extends Command
         $fn = $this->argument('function');
         $args = $this->argument('args');
 
-        $res = LaravelEvmFacade::at($addr, $abi)->call($fn, $args);
-        $this->line(json_encode($res, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    $client = LaravelEvmFacade::at($addr, $abi)->call($fn, $args);
+    $raw = $client->result();
+    $decoded = $client->as('string'); // example casting; user can choose other types
+
+    $this->line('Raw: '.$raw);
+    $this->line('Decoded(string): '.$decoded);
 
         return self::SUCCESS;
     }

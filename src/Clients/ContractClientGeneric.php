@@ -7,6 +7,8 @@ use Farbcode\LaravelEvm\Contracts\ContractClient;
 use Farbcode\LaravelEvm\Contracts\RpcClient;
 use Farbcode\LaravelEvm\Contracts\Signer;
 use Farbcode\LaravelEvm\Jobs\SendTransaction;
+use Farbcode\LaravelEvm\Support\CallResult;
+use Farbcode\LaravelEvm\Events\CallPerformed;
 
 class ContractClientGeneric implements ContractClient
 {
@@ -35,11 +37,21 @@ class ContractClientGeneric implements ContractClient
         $from = $this->signer->getAddress();
         $data = $this->abi->encodeFunction($this->abiJson, $function, $args);
 
-        return $this->rpc->call('eth_call', [[
+        $res = $this->rpc->call('eth_call', [[
             'from' => $from,
             'to' => $this->address,
             'data' => $data,
         ], 'latest']);
+
+        // Dispatch read event with raw result (before wrapping)
+        event(new CallPerformed($from, $this->address, $function, $args, $res));
+
+        // Wrap raw hex for convenient decoding if applicable.
+        if (is_string($res) && str_starts_with($res, '0x')) {
+            return new CallResult($res);
+        }
+
+        return $res; // Return original if already decoded or different format
     }
 
     public function estimateGas(string $data, ?string $from = null): int

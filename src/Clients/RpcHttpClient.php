@@ -128,16 +128,24 @@ class RpcHttpClient implements RpcClient
      * Convenience wrapper returning the result field
      * Throws when the RPC response carries an error
      */
-    public function call(string $method, array $params = []): false|string
+    public function call(string $method, array $params = []): mixed // align with interface
     {
         $json = $this->callRaw($method, $params);
 
         if (isset($json['error'])) {
-            throw new RpcException(is_array($json['error']) ? json_encode($json['error']) : (string) $json['error']);
+            $err = $json['error'];
+            throw new RpcException(is_array($err) ? json_encode($err) : (string) $err);
         }
 
-        // Some providers return already unwrapped arrays for simple calls
-        return isset($json['result']) && is_array($json['result']) ? json_encode($json['result']) : (string) ($json['result'] ?? $json);
+        if (! array_key_exists('result', $json)) {
+            // Unexpected shape; return whole response for caller inspection
+            return $json;
+        }
+
+        $result = $json['result'];
+
+        // Return arrays directly (e.g. receipts) and scalars/hex as-is.
+        return $result;
     }
 
     /**
@@ -152,5 +160,18 @@ class RpcHttpClient implements RpcClient
             'chainId' => is_string($idHex) ? hexdec($idHex) : (int) $idHex,
             'block' => is_string($bnHex) ? hexdec($bnHex) : (int) $bnHex,
         ];
+    }
+
+    /**
+     * Get logs wrapper calling eth_getLogs with validation
+     */
+    public function getLogs(array $filter): array
+    {
+        // Basic validation: require either blockHash or fromBlock/toBlock pair.
+        if (!isset($filter['blockHash']) && !isset($filter['fromBlock']) && !isset($filter['toBlock'])) {
+            throw new \InvalidArgumentException('getLogs filter requires blockHash or fromBlock/toBlock');
+        }
+        $res = $this->call('eth_getLogs', [$filter]);
+        return is_array($res) ? $res : [];
     }
 }

@@ -19,9 +19,8 @@ class PrivateKeySigner implements Signer
 
     public function getAddress(): string
     {
-        $address = new Address($this->privateKey);
-
-        return $address->get();
+        $address = new Address(ltrim($this->privateKey, '0x'));
+        return '0x'.$address->get();
     }
 
     // expose for internal sign only if needed

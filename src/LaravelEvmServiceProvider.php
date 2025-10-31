@@ -10,6 +10,7 @@ use Farbcode\LaravelEvm\Commands\EvmGenerateAddressCommand;
 use Farbcode\LaravelEvm\Commands\EvmHealthCommand;
 use Farbcode\LaravelEvm\Commands\EvmSendCommand;
 use Farbcode\LaravelEvm\Commands\EvmWaitCommand;
+use Farbcode\LaravelEvm\Commands\EvmBumpCommand;
 use Farbcode\LaravelEvm\Contracts\AbiCodec;
 use Farbcode\LaravelEvm\Contracts\ContractClient;
 use Farbcode\LaravelEvm\Contracts\FeePolicy;
@@ -21,6 +22,7 @@ use Farbcode\LaravelEvm\Crypto\LocalNonceManager;
 use Farbcode\LaravelEvm\Crypto\PrivateKeySigner;
 use Farbcode\LaravelEvm\Crypto\TxBuilderEip1559;
 use Farbcode\LaravelEvm\Support\SimpleFeePolicy;
+use Farbcode\LaravelEvm\Support\LogFilterBuilder;
 use Illuminate\Contracts\Foundation\Application;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
@@ -43,6 +45,7 @@ class LaravelEvmServiceProvider extends PackageServiceProvider
                 EvmWaitCommand::class,
                 EvmHealthCommand::class,
                 EvmGenerateAddressCommand::class,
+                EvmBumpCommand::class,
             ]);
     }
 
@@ -80,6 +83,10 @@ class LaravelEvmServiceProvider extends PackageServiceProvider
                     'queue' => (string) config('evm.tx.queue', 'evm-send'),
                 ]
             );
+        });
+
+        $this->app->bind(LogFilterBuilder::class, function($app){
+            return LogFilterBuilder::make($app->make(RpcClient::class));
         });
     }
 }
