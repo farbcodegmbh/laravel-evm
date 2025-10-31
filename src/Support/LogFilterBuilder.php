@@ -7,9 +7,7 @@ use kornrunner\Keccak;
 
 class LogFilterBuilder
 {
-    public function __construct(private RpcClient $rpc)
-    {
-    }
+    public function __construct(private RpcClient $rpc) {}
 
     private array $filter = [];
 
@@ -21,24 +19,28 @@ class LogFilterBuilder
     public function fromBlock(int|string $block): self
     {
         $this->filter['fromBlock'] = $this->normalizeBlock($block);
+
         return $this;
     }
 
     public function toBlock(int|string $block): self
     {
         $this->filter['toBlock'] = $this->normalizeBlock($block);
+
         return $this;
     }
 
     public function blockHash(string $hash): self
     {
         $this->filter['blockHash'] = $hash;
+
         return $this;
     }
 
     public function address(string|array $address): self
     {
         $this->filter['address'] = $address;
+
         return $this;
     }
 
@@ -49,6 +51,7 @@ class LogFilterBuilder
     {
         $this->ensureTopicIndex($index);
         $this->filter['topics'][$index] = $this->normalizeTopic($value);
+
         return $this;
     }
 
@@ -59,6 +62,7 @@ class LogFilterBuilder
     {
         $this->ensureTopicIndex($index);
         $this->filter['topics'][$index] = array_map(fn ($v) => $this->normalizeTopic($v), array_values($values));
+
         return $this;
     }
 
@@ -69,6 +73,7 @@ class LogFilterBuilder
     {
         $this->ensureTopicIndex($index);
         $this->filter['topics'][$index] = null;
+
         return $this;
     }
 
@@ -77,7 +82,7 @@ class LogFilterBuilder
      */
     private function trimTopics(): void
     {
-        if (!isset($this->filter['topics']) || !is_array($this->filter['topics'])) {
+        if (! isset($this->filter['topics']) || ! is_array($this->filter['topics'])) {
             return;
         }
         $topics = $this->filter['topics'];
@@ -98,13 +103,43 @@ class LogFilterBuilder
     public function build(): array
     {
         $this->trimTopics();
+
         return $this->filter;
     }
 
     public function get(): array
     {
         $f = $this->build();
+
         return $this->rpc->getLogs($f);
+    }
+
+    public function chunked(?int $maxChunk = null): array
+    {
+        $maxChunk = $maxChunk ?? (int) config('evm.logs.max_chunk', 5000);
+        $from = $this->filter['fromBlock'] ?? null;
+        $to = $this->filter['toBlock'] ?? null;
+        if (! $from || ! $to || $to === 'latest') {
+            return $this->get();
+        }
+        if (! str_starts_with($from, '0x') || ! str_starts_with($to, '0x')) {
+            return $this->get();
+        }
+        $start = hexdec($from);
+        $end = hexdec($to);
+        if ($end < $start) {
+            return [];
+        }
+        $all = [];
+        for ($cursor = $start; $cursor <= $end; $cursor += ($maxChunk + 1)) {
+            $chunkEnd = min($end, $cursor + $maxChunk);
+            $clone = clone $this;
+            $clone->filter['fromBlock'] = '0x'.dechex($cursor);
+            $clone->filter['toBlock'] = '0x'.dechex($chunkEnd);
+            $all = array_merge($all, $clone->get());
+        }
+
+        return $all;
     }
 
     private function ensureTopicIndex(int $index): void
@@ -112,7 +147,7 @@ class LogFilterBuilder
         if ($index < 0 || $index > 3) {
             throw new \InvalidArgumentException('Topic index must be 0..3');
         }
-        if (!isset($this->filter['topics'])) {
+        if (! isset($this->filter['topics'])) {
             $this->filter['topics'] = [];
         }
     }
@@ -127,11 +162,11 @@ class LogFilterBuilder
         if (is_string($block) && ($block === 'latest' || $block === 'earliest' || $block === 'pending')) {
             return $block;
         }
-        if (is_int($block)) {
-            return '0x'.dechex($block);
-        }
         if (is_string($block) && str_starts_with($block, '0x')) {
             return $block;
+        }
+        if (is_int($block)) {
+            return '0x'.dechex($block);
         }
         if (ctype_digit((string) $block)) {
             return '0x'.dechex((int) $block);
@@ -144,7 +179,8 @@ class LogFilterBuilder
      */
     public function event(string $signature): self
     {
-        $hash = '0x' . Keccak::hash($signature, 256);
+        $hash = '0x'.Keccak::hash($signature, 256);
+
         return $this->topic(0, $hash);
     }
 
@@ -154,14 +190,15 @@ class LogFilterBuilder
     public function eventByAbi(array|string $abi, string $eventName): self
     {
         $abiArr = is_string($abi) ? json_decode($abi, true) : $abi;
-        if (!is_array($abiArr)) {
+        if (! is_array($abiArr)) {
             throw new \InvalidArgumentException('ABI must be array or JSON string');
         }
         foreach ($abiArr as $entry) {
             if (($entry['type'] ?? '') === 'event' && ($entry['name'] ?? '') === $eventName) {
                 $inputs = $entry['inputs'] ?? [];
-                $types = implode(',', array_map(fn($in) => $in['type'], $inputs));
-                $sig = $eventName . '(' . $types . ')';
+                $types = implode(',', array_map(fn ($in) => $in['type'], $inputs));
+                $sig = $eventName.'('.$types.')';
+
                 return $this->event($sig);
             }
         }
@@ -174,7 +211,8 @@ class LogFilterBuilder
     public static function padAddress(string $address): string
     {
         $clean = strtolower(preg_replace('/^0x/', '', $address));
-        return '0x' . str_pad($clean, 64, '0', STR_PAD_LEFT);
+
+        return '0x'.str_pad($clean, 64, '0', STR_PAD_LEFT);
     }
 
     /**
@@ -184,41 +222,50 @@ class LogFilterBuilder
     public static function decodeEvent(array|string $abi, array $log): array
     {
         $abiArr = is_string($abi) ? json_decode($abi, true) : $abi;
-        if (!is_array($abiArr)) { throw new \InvalidArgumentException('ABI must decode to array'); }
+        if (! is_array($abiArr)) {
+            throw new \InvalidArgumentException('ABI must decode to array');
+        }
         $topics = $log['topics'] ?? [];
         $dataHex = $log['data'] ?? '0x';
         foreach ($abiArr as $entry) {
             if (($entry['type'] ?? '') === 'event') {
                 $inputs = $entry['inputs'] ?? [];
-                $typesSig = implode(',', array_map(fn($i) => $i['type'], $inputs));
+                $typesSig = implode(',', array_map(fn ($i) => $i['type'], $inputs));
                 $sig = $entry['name'].'('.$typesSig.')';
                 $expected = '0x'.Keccak::hash($sig, 256);
-                if (($topics[0] ?? '') !== $expected) { continue; }
+                if (($topics[0] ?? '') !== $expected) {
+                    continue;
+                }
                 $indexedDecoded = [];
                 $nonIndexedTypes = [];
                 foreach ($inputs as $idx => $in) {
                     $type = $in['type'];
                     $name = $in['name'] ?? 'arg'.$idx;
                     if ($in['indexed'] ?? false) {
-                        $raw = $topics[count($indexedDecoded)+1] ?? null; // topic0 is signature
+                        $raw = $topics[count($indexedDecoded) + 1] ?? null; // topic0 is signature
                         $indexedDecoded[$name] = self::decodeTopicValue($type, $raw);
                     } else {
                         $nonIndexedTypes[] = ['type' => $type, 'name' => $name];
                     }
                 }
                 $nonIndexedDecoded = self::decodeDataValues($nonIndexedTypes, $dataHex);
+
                 return array_merge($indexedDecoded, $nonIndexedDecoded);
             }
         }
+
         return [];
     }
 
     private static function decodeTopicValue(string $type, ?string $hex): mixed
     {
-        if ($hex === null) { return null; }
+        if ($hex === null) {
+            return null;
+        }
         $clean = strtolower(preg_replace('/^0x/', '', $hex));
-        return match(true) {
-            str_starts_with($type,'uint') => hexdec($clean),
+
+        return match (true) {
+            str_starts_with($type, 'uint') => hexdec($clean),
             $type === 'address' => '0x'.substr($clean, -40),
             $type === 'bool' => (bool) hexdec(substr($clean, -1)),
             $type === 'bytes32' => '0x'.$clean,
@@ -236,8 +283,8 @@ class LogFilterBuilder
             $offset += 64;
             $type = $def['type'];
             $name = $def['name'];
-            $out[$name] = match(true) {
-                str_starts_with($type,'uint') => hexdec($chunk),
+            $out[$name] = match (true) {
+                str_starts_with($type, 'uint') => hexdec($chunk),
                 $type === 'address' => '0x'.substr($chunk, -40),
                 $type === 'bool' => (bool) hexdec(substr($chunk, -1)),
                 $type === 'bytes32' => '0x'.$chunk,
@@ -245,6 +292,7 @@ class LogFilterBuilder
                 default => '0x'.$chunk,
             };
         }
+
         return $out;
     }
 }

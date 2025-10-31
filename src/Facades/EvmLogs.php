@@ -2,8 +2,8 @@
 
 namespace Farbcode\LaravelEvm\Facades;
 
-use Illuminate\Support\Facades\Facade;
 use Farbcode\LaravelEvm\Support\LogFilterBuilder;
+use Illuminate\Support\Facades\Facade;
 
 class EvmLogs extends Facade
 {
@@ -19,6 +19,7 @@ class EvmLogs extends Facade
     {
         /** @var LogFilterBuilder $builder */
         $builder = app(LogFilterBuilder::class);
+
         return $builder;
     }
 }

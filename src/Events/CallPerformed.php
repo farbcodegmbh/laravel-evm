@@ -12,4 +12,3 @@ class CallPerformed
         public mixed $rawResult
     ) {}
 }
-

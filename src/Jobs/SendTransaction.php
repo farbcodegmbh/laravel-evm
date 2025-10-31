@@ -65,7 +65,6 @@ class SendTransaction implements ShouldQueue
             'accessList' => [],
         ];
 
-
         $pk = method_exists($signer, 'privateKey') ? $signer->privateKey() : null;
         if (! $pk) {
             event(new TxFailed($this->address, $this->data, 'Signer has no privateKey method'));

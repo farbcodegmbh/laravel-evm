@@ -26,13 +26,14 @@ class CallResult
     public function as(string $type): mixed
     {
         $type = strtolower($type);
+
         return match ($type) {
             'string' => $this->decodeDynamicString(),
             'bytes' => $this->decodeDynamicString(),
             'uint256', 'uint', 'int256', 'int' => $this->decodeUint256(),
             'bool' => $this->decodeBool(),
             'address' => $this->decodeAddress(),
-            default => throw new \InvalidArgumentException('Unsupported type for CallResult::as(): ' . $type),
+            default => throw new \InvalidArgumentException('Unsupported type for CallResult::as(): '.$type),
         };
     }
 
@@ -51,6 +52,7 @@ class CallResult
         // Dynamic string layout (single return value): [offset(32B)][...][length(32B)][data(length B, padded)]
         if (strlen($hex) < 128) { // treat as statically padded string fallback
             $bin = hex2bin($hex);
+
             return $bin === false ? '' : rtrim($bin, "\0");
         }
 
@@ -75,6 +77,7 @@ class CallResult
         if ($trimmed === '') {
             return 0;
         }
+
         // Large numbers returned as string to avoid overflow
         return strlen($trimmed) > 15 ? $trimmed : hexdec($slot);
     }
@@ -83,6 +86,7 @@ class CallResult
     {
         $hex = $this->strip($this->rawHex);
         $slot = substr($hex, -64);
+
         return substr($slot, -1) === '1';
     }
 
@@ -91,6 +95,7 @@ class CallResult
         $hex = $this->strip($this->rawHex);
         $slot = substr($hex, -64);
         $addr = substr($slot, -40);
-        return '0x' . $addr;
+
+        return '0x'.$addr;
     }
 }

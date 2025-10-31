@@ -5,12 +5,7 @@ namespace Farbcode\LaravelEvm;
 use Farbcode\LaravelEvm\Clients\ContractClientGeneric;
 use Farbcode\LaravelEvm\Clients\RpcHttpClient;
 use Farbcode\LaravelEvm\Codec\AbiCodecWeb3p;
-use Farbcode\LaravelEvm\Commands\EvmCallCommand;
 use Farbcode\LaravelEvm\Commands\EvmGenerateAddressCommand;
-use Farbcode\LaravelEvm\Commands\EvmHealthCommand;
-use Farbcode\LaravelEvm\Commands\EvmSendCommand;
-use Farbcode\LaravelEvm\Commands\EvmWaitCommand;
-use Farbcode\LaravelEvm\Commands\EvmBumpCommand;
 use Farbcode\LaravelEvm\Contracts\AbiCodec;
 use Farbcode\LaravelEvm\Contracts\ContractClient;
 use Farbcode\LaravelEvm\Contracts\FeePolicy;
@@ -21,8 +16,8 @@ use Farbcode\LaravelEvm\Contracts\TxBuilder;
 use Farbcode\LaravelEvm\Crypto\LocalNonceManager;
 use Farbcode\LaravelEvm\Crypto\PrivateKeySigner;
 use Farbcode\LaravelEvm\Crypto\TxBuilderEip1559;
-use Farbcode\LaravelEvm\Support\SimpleFeePolicy;
 use Farbcode\LaravelEvm\Support\LogFilterBuilder;
+use Farbcode\LaravelEvm\Support\SimpleFeePolicy;
 use Illuminate\Contracts\Foundation\Application;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
@@ -40,12 +35,7 @@ class LaravelEvmServiceProvider extends PackageServiceProvider
             ->name('laravel-evm')
             ->hasConfigFile()
             ->hasCommands([
-                EvmCallCommand::class,
-                EvmSendCommand::class,
-                EvmWaitCommand::class,
-                EvmHealthCommand::class,
                 EvmGenerateAddressCommand::class,
-                EvmBumpCommand::class,
             ]);
     }
 
@@ -85,7 +75,7 @@ class LaravelEvmServiceProvider extends PackageServiceProvider
             );
         });
 
-        $this->app->bind(LogFilterBuilder::class, function($app){
+        $this->app->bind(LogFilterBuilder::class, function ($app) {
             return LogFilterBuilder::make($app->make(RpcClient::class));
         });
     }

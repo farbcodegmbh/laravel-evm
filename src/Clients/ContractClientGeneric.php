@@ -6,9 +6,9 @@ use Farbcode\LaravelEvm\Contracts\AbiCodec;
 use Farbcode\LaravelEvm\Contracts\ContractClient;
 use Farbcode\LaravelEvm\Contracts\RpcClient;
 use Farbcode\LaravelEvm\Contracts\Signer;
+use Farbcode\LaravelEvm\Events\CallPerformed;
 use Farbcode\LaravelEvm\Jobs\SendTransaction;
 use Farbcode\LaravelEvm\Support\CallResult;
-use Farbcode\LaravelEvm\Events\CallPerformed;
 
 class ContractClientGeneric implements ContractClient
 {

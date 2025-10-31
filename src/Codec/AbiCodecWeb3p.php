@@ -78,10 +78,12 @@ class AbiCodecWeb3p implements AbiCodec
         }
         if ($type === 'address') {
             $clean = strtolower(preg_replace('/^0x/', '', (string) $val));
+
             return str_pad($clean, 64, '0', STR_PAD_LEFT);
         }
         if ($type === 'bytes32') {
             $clean = strtolower(preg_replace('/^0x/', '', (string) $val));
+
             return str_pad(substr($clean, 0, 64), 64, '0', STR_PAD_RIGHT);
         }
         if ($type === 'bool') {
@@ -100,6 +102,7 @@ class AbiCodecWeb3p implements AbiCodec
             $length = strlen($bin); // bytes
             $lenSlot = str_pad(dechex($length), 64, '0', STR_PAD_LEFT);
             $dataPadded = $this->padHexRight($hex);
+
             return $lenSlot.$dataPadded;
         }
         if ($type === 'bytes') {
@@ -108,6 +111,7 @@ class AbiCodecWeb3p implements AbiCodec
             $length = strlen($bin);
             $lenSlot = str_pad(dechex($length), 64, '0', STR_PAD_LEFT);
             $dataPadded = $this->padHexRight($clean);
+
             return $lenSlot.$dataPadded;
         }
         throw new \RuntimeException('Unsupported dynamic ABI type '.$type);
@@ -117,12 +121,14 @@ class AbiCodecWeb3p implements AbiCodec
     {
         $bytesLen = (int) ceil(strlen($hex) / 2);
         $padBytes = (32 - ($bytesLen % 32)) % 32;
+
         return $hex.str_repeat('00', $padBytes);
     }
 
     public function callStatic(array|string $abi, string $fn, array $args, callable $ethCall): mixed
     {
         $data = $this->encodeFunction($abi, $fn, $args);
+
         return $ethCall($data);
     }
 }
