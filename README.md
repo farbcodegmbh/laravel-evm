@@ -1,16 +1,30 @@
-# This is my package laravel-evm
+<div align="center">
+<h1>Laravel EVM (Ethereum Virtual Machine)</h1>
 
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/farbcodegmbh/laravel-evm.svg?style=flat-square)](https://packagist.org/packages/farbcodegmbh/laravel-evm)
 [![GitHub Tests Action Status](https://img.shields.io/github/actions/workflow/status/farbcodegmbh/laravel-evm/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/farbcodegmbh/laravel-evm/actions?query=workflow%3Arun-tests+branch%3Amain)
 [![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/farbcodegmbh/laravel-evm/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/farbcodegmbh/laravel-evm/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
 [![Total Downloads](https://img.shields.io/packagist/dt/farbcodegmbh/laravel-evm.svg?style=flat-square)](https://packagist.org/packages/farbcodegmbh/laravel-evm)
 
-A Laravel native EVM client for server side use
-RPC via Http facade  ABI encoding  EIP 1559 signing  nonces  jobs  events
+Simple, Reliable Ethereum Integration for Laravel
+</div>
+
+## Features
+
+- 💡 **EIP-1559 Support:** Seamlessly handle modern Ethereum transactions with dynamic fee management.
+- 🚀 **Asynchronous Transaction Queue:** Process blockchain transactions safely through Laravel Queues — no blocking, no delays.
+- 🔗 **Event-driven Workflow:** Stay in control with Laravel Events for every step: TxQueued, TxBroadcasted, TxMined, TxFailed.
+- 🧠 **Smart Nonce & Fee Strategy:** Automatic nonce tracking and adaptive fee logic for consistent, reliable execution.
+
+## Documentation
+
+All information on how to use this package can be found on our official documentation website.
+[→ Read the Docs](https://laravel-evm.farbcode.net)
+
 
 ## Installation
 
-You can install the package via composer:
+Install the package via composer:
 
 ```bash
 composer require farbcode/laravel-evm
@@ -22,19 +36,18 @@ You can publish the config file with:
 php artisan vendor:publish --tag="laravel-evm-config"
 ```
 
+Then set your blockchain RPC URL, chain id and private key in .env:
 
-## env
 ```dotenv
 EVM_CHAIN_ID=137
 EVM_RPC_1=https://polygon-mainnet.g.alchemy.com/v2/KEY
 EVM_PRIVATE_KEY=0xabc123...64hex
-QUEUE_CONNECTION=redis
 ```
 
 ## Usage (Quick Glimpse)
 
 ```php
-use LaravelEvm; // Facade alias defined in composer.json
+use Farbcode\LaravelEvm\Facades\Evm;
 
 $abi = file_get_contents(storage_path('app/abi/MyContract.abi.json'));
 $contract = LaravelEvm::at('0xYourContract', $abi);
@@ -51,42 +64,11 @@ Wait for a known tx hash:
 $receipt = $contract->wait('0xTxHash');
 ```
 
-More examples & full documentation: See the VitePress docs in `docs/pages` or visit the published site.
-
-### Generate new addresses
-
-The package ships with a helper to generate fresh Ethereum keypairs (using `kornrunner/ethereum-address`).
-
-Generate one address (JSON output):
-
-```bash
-php artisan evm:address:generate --json
-```
-
-Generate 3 addresses (table output):
-
-```bash
-php artisan evm:address:generate --count=3
-```
-
-Sample JSON response:
-
-```json
-[
-	{
-		"address": "0xAbcDEF1234...",
-		"private_key": "0x6f8d...64hex",
-		"public_key": "0x04b3...uncompressed"
-	}
-]
-```
-
-Security note: Private keys are shown once. Persist them securely (e.g. Vault, KMS). Never commit them.
-
 ### Log Filtering & Event Decoding
 ```php
-use EvmLogs;
+use Farbcode\LaravelEvm\Facades\EvmLogs;
 use Farbcode\LaravelEvm\Support\LogFilterBuilder;
+
 $abi = file_get_contents(storage_path('app/abi/ERC20.abi.json'));
 $logs = EvmLogs::query()
     ->fromBlock(18_000_000)
@@ -98,78 +80,37 @@ $logs = EvmLogs::query()
 $decoded = array_map(fn($l) => LogFilterBuilder::decodeEvent($abi, $l), $logs);
 ```
 
-### Facades Overview
-
-Facade aliases (registered in `composer.json`):
-
-| Facade | Binding |
-|--------|---------|
-| `LaravelEvm` | ContractClient |
-| `EvmContract` | ContractClient |
-| `EvmRpc` | RpcClient |
-| `EvmSigner` | Signer |
-| `EvmFees` | FeePolicy |
-| `EvmNonce` | NonceManager |
-| `EvmLogs` | LogFilterBuilder |
-
-Example usage:
-```php
-$symbol = \LaravelEvm::at('0xContract', $abi)->call('symbol');
-$health = \EvmRpc::health();
-$address = \EvmSigner::getAddress();
-// Suggest fees (implement suggest() if missing in your FeePolicy)
-// $fees = \EvmFees::suggest();
-```
-
-### Chainable Casting
-
-`call()` now returns the client instance for fluent casting. Raw hex is stored internally. Use `result()` to fetch it, then `as(type)` to cast.
-
-```php
-$contract = \LaravelEvm::at('0xContract', $abi)->call('name');
-$raw = $contract->result(); // e.g. 0x0000...
-$name = $contract->as('string'); // decoded
-
-$owner = $contract->call('owner')->as('address');
-$supply = $contract->call('totalSupply')->as('uint');
-$flag = $contract->call('isActive')->as('bool');
-```
-
-Supported types: `string`, `address`, `uint|uint256`, `bool`, `bytes32` (returns hex). Unknown types fall back to raw value.
-
-### Signer Robustness & Environment
-
-Address derivation uses secp256k1 (via `kornrunner/ethereum-address`). On some PHP patch builds older GMP versions can throw a `ValueError` during point math with edge-case keys. Recommendations:
-1. Use a freshly generated private key (command above) – most issues disappear.
-2. Prefer latest PHP patch (8.4.x) where GMP edge cases are fixed.
-3. If derivation fails, you will get a `SignerException` with a clear message; do not bypass by hardcoding a mismatched address (nonce and signatures become inconsistent).
-4. For read-only calls in future you can implement a custom Signer driver returning only `getAddress()` without signing logic.
-
-If you consistently see overflow errors, open an issue with your PHP version, GMP version, and the (non-sensitive) pattern of the key (do NOT share the full private key). This helps us improve cross-version resilience without adding unsafe fallbacks.
-
-## Testing
-
-```bash
-composer test
-```
+All information on how to use this package can be found on our official documentation website.
+[→ Read the Docs](https://laravel-evm.farbcode.net)
 
 ## Changelog
 
-Please see [CHANGELOG](CHANGELOG.md) for more information on what has changed recently.
+Notable changes to this package are documented in our changelog for every new release.
+
+[→ See what's changed](CHANGELOG.md)
 
 ## Contributing
 
-Please see [CONTRIBUTING](CONTRIBUTING.md) for details.
+We welcome contributions to this package.
 
-## Security Vulnerabilities
+[→ Read our Contribution Guidelines](CONTRIBUTING.md)
 
-Please review [our security policy](../../security/policy) on how to report security vulnerabilities.
+[→ Open an Issue](https://github.com/farbcodegmbh/laravel-evm/issues)
 
-## Credits
-
-- [Martin Weinschenk](https://github.com/mweinschenk)
-- [All Contributors](../../contributors)
+[→ Submit a Pull Request](https://github.com/farbcodegmbh/laravel-evm/pulls)
 
 ## License
 
-The MIT License (MIT). Please see [License File](LICENSE.md) for more information.
+The MIT License (MIT). See [License File](LICENSE.md) for more information.
+
+---
+
+<a href="https://farbcode.net" target="_blank">
+    <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/farbcodegmbh/laravel-evm/HEAD/art/farbcode-logo-dark.png">
+        <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/farbcodegmbh/laravel-evm/HEAD/art/farbcode-logo-light.png">
+        <img alt="farbcode Logo" src="https://raw.githubusercontent.com/farbcodegmbh/laravel-evm/HEAD/art/farbcode-logo-light.png">
+    </picture>
+</a>
+
+> Made with ❤️ by [//farbcode](https://farbcode.net).
