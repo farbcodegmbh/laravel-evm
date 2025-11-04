@@ -22,11 +22,11 @@ export default defineConfig({
                 items: [
                     {
                         text: 'Changelog',
-                        link: 'https://github.com/farbcodegmbh/laravel-stateful-resources/blob/main/CHANGELOG.md'
+                        link: 'https://github.com/farbcodegmbh/laravel-evm/blob/main/CHANGELOG.md'
                     },
                     {
                         text: 'Contributing',
-                        link: 'https://github.com/farbcodegmbh/laravel-stateful-resources/blob/main/CONTRIBUTING.md'
+                        link: 'https://github.com/farbcodegmbh/laravel-evm/blob/main/CONTRIBUTING.md'
                     }
                 ]
             }
