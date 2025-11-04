@@ -1,72 +1,75 @@
-import { defineConfig } from 'vitepress';
+import {defineConfig} from 'vitepress';
 import pkg from '../package.json'
 
 export default defineConfig({
-  title: 'Laravel EVM',
-  description: 'Reliable EVM interaction for Laravel (contracts, async transactions, fees, nonces, multi-RPC)',
-  srcDir: './pages',
-  cleanUrls: true,
-  lastUpdated: true,
-  markdown: {
+    title: 'Laravel EVM',
+    description: 'Simple, Reliable Ethereum Integration for Laravel',
+    srcDir: './pages',
+    cleanUrls: true,
+    lastUpdated: true,
+    markdown: {
         theme: {
             light: 'github-light',
             dark: 'github-dark'
         }
     },
-  themeConfig: {
-    nav: [
-      { text: 'Guide', link: '/pages/README' },
-      { text: 'Architecture', link: '/pages/architecture' },
-      { text: 'Configuration', link: '/pages/configuration' },
-      { text: 'Transactions', link: '/pages/transactions' },
-      { text: 'Events', link: '/pages/events' },
-  { text: 'Facades', link: '/pages/facades' },
-  { text: 'Examples', link: '/pages/examples' }
-    ],
-    sidebar: {
-      '/pages/': [
-        {
-          text: 'Overview',
-          items: [
-            { text: 'Introduction', link: '/pages/README#introduction' },
-            { text: 'Quick Start', link: '/pages/README#quick-start' },
-            { text: 'Core Concepts', link: '/pages/README#core-concepts' }
-          ]
+    themeConfig: {
+        // https://vitepress.dev/reference/default-theme-config
+        nav: [
+            { text: 'Home', link: '/' },
+            {
+                text: pkg.version,
+                items: [
+                    {
+                        text: 'Changelog',
+                        link: 'https://github.com/farbcodegmbh/laravel-stateful-resources/blob/main/CHANGELOG.md'
+                    },
+                    {
+                        text: 'Contributing',
+                        link: 'https://github.com/farbcodegmbh/laravel-stateful-resources/blob/main/CONTRIBUTING.md'
+                    }
+                ]
+            }
+        ],
+
+        sidebar: [
+            {
+                text: 'Basics',
+                items: [
+                    { text: 'Installation', link: '/installation' },
+                    { text: 'Basic Usage', link: '/basic-usage' },
+                ]
+            },
+            {
+                text: 'Advanced Usage',
+                items: [
+                    { text: 'Events', link: '/advanced-events' },
+                    { text: 'Log Querying', link: '/advanced-logs' },
+                    { text: 'Other Components', link: '/advanced-other' },
+                ]
+            },
+            {
+                text: 'Reference',
+                items: [
+                    { text: 'API Reference', link: '/reference' },
+                ]
+            }
+        ],
+
+        socialLinks: [
+            {icon: 'github', link: 'https://github.com/farbcodegmbh/laravel-evm'},
+            {
+                icon: {svg: '<svg width="100%" height="100%" viewBox="0 0 215 215" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;"><rect id="Artboard1" x="0" y="0" width="215" height="215" style="fill:none;"/><g><g><path d="M164.136,6.857L211.041,6.857L122.651,207.615L75.746,207.615L164.136,6.857Z" style="fill:#003e99;fill-rule:nonzero;"/><path d="M93.089,6.857L140.027,6.857L51.637,207.615L4.732,207.615L93.089,6.857Z" style="fill:#0bbaee;fill-rule:nonzero;"/></g></g></svg>'},
+                link: 'https://farbcode.net'
+            },
+        ],
+        footer: {
+            message: 'Released under the MIT License.',
+            copyright: 'Copyright © 2025-present //farbcode GmbH'
         },
-        {
-          text: 'Architecture',
-          items: [
-            { text: 'Component Diagram', link: '/pages/architecture#component-diagram' },
-            { text: 'Transaction Lifecycle', link: '/pages/architecture#transaction-job-lifecycle' },
-            { text: 'Events', link: '/pages/events' }
-          ]
-        },
-        {
-          text: 'Runtime',
-          items: [
-            { text: 'Configuration', link: '/pages/configuration' },
-            { text: 'Facades', link: '/pages/facades' },
-            { text: 'Transactions', link: '/pages/transactions' },
-            { text: 'Events', link: '/pages/events' },
-            { text: 'Examples', link: '/pages/examples' }
-          ]
-        },
-        {
-          text: 'Advanced',
-          items: [
-            { text: 'Extensibility Points', link: '/pages/architecture#extensibility-points' },
-            { text: 'Concurrency Model', link: '/pages/architecture#concurrency-model' },
-            { text: 'Security Considerations', link: '/pages/architecture#security-considerations' }
-          ]
+
+        search: {
+            provider: 'local',
         }
-      ]
-    },
-    socialLinks: [
-      { icon: 'github', link: 'https://github.com/farbcodegmbh/laravel-evm' }
-    ],
-    footer: {
-      message: 'MIT Licensed',
-      copyright: 'Copyright © 2025 //farbcode GmbH'
     }
-  }
 });

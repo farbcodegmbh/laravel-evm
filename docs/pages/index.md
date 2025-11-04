@@ -2,48 +2,22 @@
 layout: home
 hero:
   name: Laravel EVM
-  text: Reliable EVM interaction for Laravel (contracts, async transactions, fees, nonces, multi-RPC)
-  tagline: Production-focused toolkit for Ethereum & EVM chains
+  text: Simple, Reliable Ethereum Integration for Laravel
+  tagline: Read contracts. Send async transactions. Query logs.
   actions:
     - theme: brand
-      text: Get Started
-      link: /pages/README
+      text: Installation
+      link: /installation
     - theme: alt
-      text: Architecture
-      link: /pages/architecture
+      text: Basic Usage
+      link: /basic-usage
 features:
-  - title: ⚙️ Async Transactions
-    details: Queue-based EIP-1559 lifecycle with fee replacement & events.
-  - title: 🛰️ Multi-RPC Failover
-    details: Round-robin fallback with robust logging.
-  - title: 🔐 Safe Nonce Management
-    details: Prevents collisions via local tracking & guidelines.
-  - title: 🧪 Test Friendly
-    details: Facade singletons and replaceable strategies for unit tests.
+  - title: 💡 EIP-1559 Support
+    details: Seamlessly handle modern Ethereum transactions with dynamic fee management.
+  - title: 🚀 Asynchronous Transaction Queue
+    details: Process blockchain transactions safely through Laravel Queues — no blocking, no delays.
+  - title: 🧠 Smart Nonce & Fee Strategy
+    details: Automatic nonce tracking and adaptive fee logic for consistent, reliable execution.
+  - title: 🔗 Event-driven Workflow
+    details: Stay in control with Laravel Events for every step.
 ---
-
-# Laravel EVM
-
-Welcome to the documentation site. Use the sidebar to explore guides.
-
-Quick links:
-- [Overview & Quick Start](/pages/README)
-- [Architecture](/pages/architecture)
-- [Configuration](/pages/configuration)
-- [Transactions](/pages/transactions)
-- [Events](/pages/events)
-- [Facades](/pages/facades)
-
-## Installation
-```bash
-composer require farbcodegmbh/laravel-evm
-```
-
-## Next Steps
-Configure RPC endpoints and private key in your `.env`, then start the queue worker:
-```bash
-php artisan queue:work --queue=evm-send
-```
-
-## Contributing
-Issues & PRs welcome on GitHub.
