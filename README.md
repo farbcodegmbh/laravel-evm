@@ -7,6 +7,9 @@
 [![Total Downloads](https://img.shields.io/packagist/dt/farbcodegmbh/laravel-evm.svg?style=flat-square)](https://packagist.org/packages/farbcodegmbh/laravel-evm)
 
 Simple, Reliable Ethereum Integration for Laravel
+    <picture>
+        <img alt="Laravel EVM Logo" src="https://raw.githubusercontent.com/farbcodegmbh/laravel-evm/HEAD/art/laravel-evm-ethereum-virtual-machine.png"  style="max-width: 25rem;">
+    </picture>
 </div>
 
 ## Features
@@ -109,8 +112,8 @@ The MIT License (MIT). See [License File](LICENSE.md) for more information.
     <picture>
         <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/farbcodegmbh/laravel-evm/HEAD/art/farbcode-logo-dark.png">
         <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/farbcodegmbh/laravel-evm/HEAD/art/farbcode-logo-light.png">
-        <img alt="farbcode Logo" src="https://raw.githubusercontent.com/farbcodegmbh/laravel-evm/HEAD/art/farbcode-logo-light.png">
+        <img alt="farbcode Logo" src="https://raw.githubusercontent.com/farbcodegmbh/laravel-evm/HEAD/art/farbcode-logo-light.png"  style="max-width: 25rem;">
     </picture>
 </a>
 
-> Made with ❤️ by [//farbcode](https://farbcode.net).
+Made with ❤️ by [//farbcode](https://farbcode.net).
