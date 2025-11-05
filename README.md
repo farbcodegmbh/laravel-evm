@@ -24,6 +24,10 @@
 All information on how to use this package can be found on our official documentation website.
 [→ Read the Docs](https://laravel-evm.farbcode.net)
 
+## Requirements
+- PHP >= 8.4
+- Laravel >= 12
+- GMP PHP extension installed and enabled
 
 ## Installation
 
@@ -36,7 +40,7 @@ composer require farbcode/laravel-evm
 You can publish the config file with:
 
 ```bash
-php artisan vendor:publish --tag="laravel-evm-config"
+php artisan vendor:publish --tag="evm-config"
 ```
 
 Then set your blockchain RPC URL, chain id and private key in .env:

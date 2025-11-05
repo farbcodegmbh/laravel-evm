@@ -20,8 +20,8 @@ return [
 
     // Fee policy for EIP 1559.
     'fees' => [
-        'min_priority_gwei' => env('EVM_MIN_PRIORITY_GWEI', 3),
-        'min_maxfee_gwei' => env('EVM_MIN_MAXFEE_GWEI', 40),
+        'min_priority_gwei' => env('EVM_MIN_PRIORITY_GWEI', 50),
+        'min_maxfee_gwei' => env('EVM_MIN_MAXFEE_GWEI', 120),
         'base_multiplier' => env('EVM_BASE_MULTIPLIER', 3),
         'replacement_factor' => env('EVM_REPLACEMENT_FACTOR', 1.5),
     ],
@@ -32,8 +32,6 @@ return [
         'confirm_timeout' => env('EVM_CONFIRM_TIMEOUT', 120), // seconds
         'max_replacements' => env('EVM_MAX_REPLACEMENTS', 2),
         'poll_interval_ms' => env('EVM_POLL_INTERVAL_MS', 800),
-
-        // Queue used for sending jobs. Keep concurrency at one per writer address.
-        'queue' => env('EVM_QUEUE', 'evm-send'),
+        'queue' => env('EVM_QUEUE', 'evm-send'), // Keep concurrency=1 per signer
     ],
 ];
