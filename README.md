@@ -6,9 +6,9 @@
 [![GitHub Code Style Action Status](https://img.shields.io/github/actions/workflow/status/farbcodegmbh/laravel-evm/fix-php-code-style-issues.yml?branch=main&label=code%20style&style=flat-square)](https://github.com/farbcodegmbh/laravel-evm/actions?query=workflow%3A"Fix+PHP+code+style+issues"+branch%3Amain)
 [![Total Downloads](https://img.shields.io/packagist/dt/farbcode/laravel-evm.svg?style=flat-square)](https://packagist.org/packages/farbcode/laravel-evm)
 
-Simple, Reliable Ethereum Integration for Laravel
+<p>Simple, Reliable Ethereum Integration for Laravel</p>
     <picture>
-        <img alt="Laravel EVM Logo" src="https://raw.githubusercontent.com/farbcodegmbh/laravel-evm/HEAD/art/laravel-evm-ethereum-virtual-machine.png"  style="max-width: 25rem;">
+        <img alt="Laravel EVM Logo" width="400"src="https://raw.githubusercontent.com/farbcodegmbh/laravel-evm/HEAD/art/laravel-evm-ethereum-virtual-machine.png">
     </picture>
 </div>
 
@@ -112,7 +112,7 @@ The MIT License (MIT). See [License File](LICENSE.md) for more information.
     <picture>
         <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/farbcodegmbh/laravel-evm/HEAD/art/farbcode-logo-dark.png">
         <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/farbcodegmbh/laravel-evm/HEAD/art/farbcode-logo-light.png">
-        <img alt="farbcode Logo" src="https://raw.githubusercontent.com/farbcodegmbh/laravel-evm/HEAD/art/farbcode-logo-light.png"  style="max-width: 25rem;">
+        <img width="300" alt="farbcode Logo" src="https://raw.githubusercontent.com/farbcodegmbh/laravel-evm/HEAD/art/farbcode-logo-light.png">
     </picture>
 </a>
 
