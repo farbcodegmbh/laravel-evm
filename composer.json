@@ -29,8 +29,7 @@
         "kornrunner/ethereum-address": "^0.3.0",
         "kornrunner/keccak": "^1.1",
         "spatie/laravel-package-tools": "^1.16",
-        "web3p/ethereum-tx": "^0.4.3",
-        "web3p/web3.php": "^0.3.2"
+        "web3p/ethereum-tx": "^0.4.3"
     },
     "require-dev": {
         "laravel/pint": "^1.14",
