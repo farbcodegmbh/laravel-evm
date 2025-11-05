@@ -3,6 +3,7 @@
 ## Requirements
 - PHP >= 8.4
 - Laravel >= 12
+- GMP PHP extension installed and enabled
 
 ## Package Install
 Install via Composer:
@@ -23,7 +24,7 @@ Multiple RPC URLs provide failover and load distribution.
 ## Publish Config (Optional)
 Publish the configuration file if you want to adjust gas padding, timeouts or fee strategy:
 ```bash
-php artisan vendor:publish --tag=laravel-evm-config
+php artisan vendor:publish --tag=evm-config
 ```
 This creates `config/evm.php` with sections for `rpc_urls`, `tx`, `fees`, and signer settings.
 
