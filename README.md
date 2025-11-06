@@ -25,6 +25,7 @@ All information on how to use this package can be found on our official document
 [→ Read the Docs](https://laravel-evm.farbcode.net)
 
 ## Requirements
+
 - PHP >= 8.4
 - Laravel >= 12
 - GMP PHP extension installed and enabled
@@ -62,16 +63,18 @@ $contract = LaravelEvm::at('0xYourContract', $abi);
 // Read call
 $balance = $contract->call('balanceOf', ['0xUser']);
 
-// Write (async)
+// Write (async - enqueued on EVM_QUEUE default:evm-send, see https://laravel-evm.farbcode.net/basic-usage#writes-async-transactions for more information)
 $jobId = $contract->sendAsync('transfer', ['0xRecipient', 100]);
 ```
 
 Wait for a known tx hash:
+
 ```php
 $receipt = $contract->wait('0xTxHash');
 ```
 
 ### Log Filtering & Event Decoding
+
 ```php
 use Farbcode\LaravelEvm\Facades\EvmLogs;
 use Farbcode\LaravelEvm\Support\LogFilterBuilder;
