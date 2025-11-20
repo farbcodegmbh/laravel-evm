@@ -21,6 +21,7 @@ use Farbcode\LaravelEvm\Support\SimpleFeePolicy;
 use Illuminate\Contracts\Foundation\Application;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
+use Farbcode\LaravelEvm\Exceptions\RequirementException;
 
 class LaravelEvmServiceProvider extends PackageServiceProvider
 {
@@ -39,8 +40,14 @@ class LaravelEvmServiceProvider extends PackageServiceProvider
             ]);
     }
 
-    public function packageRegistered()
+    public function packageRegistered(): void
     {
+        // Runtime environment guard: ensure GMP extension is loaded.
+        // This package relies on big integer math (Keccak, RLP, transaction signing).
+        if (! extension_loaded('gmp')) {
+            throw new RequirementException('The GMP PHP extension is required for laravel-evm. Please enable it: e.g. install with `apt install php-gmp` or add `extension=gmp` to your php.ini and restart PHP-FPM / CLI.');
+        }
+
         $this->app->singleton(RpcClient::class, fn () => new RpcHttpClient(
             config('evm.rpc_urls'),
             (int) config('evm.chain_id', 137)
