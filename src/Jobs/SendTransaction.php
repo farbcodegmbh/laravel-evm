@@ -27,11 +27,11 @@ class SendTransaction implements ShouldQueue
 {
     use InteractsWithQueue, Queueable, SerializesModels;
 
-    public function __construct(public string $address, public string $data, public array $opts, public int $chainId, public array $txCfg) {}
+    public function __construct(public string $address, public string $data, public array $opts, public int $chainId, public array $txCfg, public mixed $payload = null) {}
 
     public function handle(RpcClient $rpc, Signer $signer, NonceManager $nonces, FeePolicy $fees): void
     {
-        event(new TxQueued($this->address, $this->data));
+        event(new TxQueued($this->address, $this->data, $this->payload));
 
         $from = $signer->getAddress();
 
@@ -67,7 +67,7 @@ class SendTransaction implements ShouldQueue
 
         $pk = method_exists($signer, 'privateKey') ? $signer->privateKey() : null;
         if (! $pk) {
-            event(new TxFailed($this->address, $this->data, 'Signer has no privateKey method'));
+            event(new TxFailed($this->address, $this->data, 'Signer has no privateKey method', $this->payload));
 
             return;
         }
@@ -78,10 +78,10 @@ class SendTransaction implements ShouldQueue
             $rawHex = str_starts_with($raw, '0x') ? $raw : '0x'.$raw; // ensure 0x prefix
             $txHash = $rpc->call('eth_sendRawTransaction', [$rawHex]);
             $nonces->markUsed($from, $nonce);
-            event(new TxBroadcasted($txHash, $fields));
+            event(new TxBroadcasted($txHash, $fields, $this->payload));
 
         } catch (\Throwable $e) {
-            event(new TxFailed($this->address, $this->data, 'rpc_send_error: '.$e->getMessage()));
+            event(new TxFailed($this->address, $this->data, 'rpc_send_error: '.$e->getMessage(), $this->payload));
 
             return;
         }
@@ -94,7 +94,7 @@ class SendTransaction implements ShouldQueue
         while (time() < $deadline) {
             $rec = $rpc->call('eth_getTransactionReceipt', [$txHash]);
             if (! empty($rec)) {
-                event(new TxMined($txHash, $rec));
+                event(new TxMined($txHash, $rec, $this->payload));
 
                 return;
             }
@@ -109,15 +109,15 @@ class SendTransaction implements ShouldQueue
             $fields['maxFeePerGas'] = $max;
 
             // Emit replacement attempt (before rebroadcast)
-            event(new TxReplaced($oldTxHash, $fields, $i + 1));
+            event(new TxReplaced($oldTxHash, $fields, $i + 1, $this->payload));
 
             try {
                 $raw = new EIP1559Transaction($fields)->sign($pk);
                 $rawHex = str_starts_with($raw, '0x') ? $raw : '0x'.$raw; // ensure 0x prefix
                 $txHash = $rpc->call('eth_sendRawTransaction', [$rawHex]);
-                event(new TxBroadcasted($txHash, $fields));
+                event(new TxBroadcasted($txHash, $fields, $this->payload));
             } catch (\Throwable $e) {
-                event(new TxFailed($this->address, $this->data, 'rpc_send_error_replacement_'.$i.': '.$e->getMessage()));
+                event(new TxFailed($this->address, $this->data, 'rpc_send_error_replacement_'.$i.': '.$e->getMessage(), $this->payload));
 
                 return;
             }
@@ -126,7 +126,7 @@ class SendTransaction implements ShouldQueue
             while (time() < $deadline) {
                 $rec = $rpc->call('eth_getTransactionReceipt', [$txHash]);
                 if (! empty($rec)) {
-                    event(new TxMined($txHash, $rec));
+                    event(new TxMined($txHash, $rec, $this->payload));
 
                     return;
                 }
@@ -137,7 +137,8 @@ class SendTransaction implements ShouldQueue
         event(new TxFailed(
             $this->address,
             $this->data,
-            sprintf('no_receipt_after_%d_replacements (last maxFee=%d priority=%d)', $maxRep, $fields['maxFeePerGas'], $fields['maxPriorityFeePerGas'])
+            sprintf('no_receipt_after_%d_replacements (last maxFee=%d priority=%d)', $maxRep, $fields['maxFeePerGas'], $fields['maxPriorityFeePerGas']),
+            $this->payload
         ));
     }
 }

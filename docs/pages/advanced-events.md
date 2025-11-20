@@ -1,18 +1,27 @@
 # Events
 
 Transactional events provide lifecycle visibility for asynchronous writes. Use them for logging, metrics, user
-notifications, and fee escalation monitoring.
+notifications, and fee escalation monitoring. Each write-related event includes an optional `$payload` that you can attach via `sendAsync(..., $payload)`.
 
 ## Event List
 
-| Event           | When Fired            | Key Fields                              | Purpose                             |
-|-----------------|-----------------------|-----------------------------------------|-------------------------------------|
-| `TxQueued`      | Job dispatched        | request_id, function, address           | Track submission before broadcast   |
-| `TxBroadcasted` | First raw tx accepted | tx_hash, nonce, fees                    | Persist hash, start monitoring      |
-| `TxReplaced`    | Replacement broadcast | old_tx_hash, new_tx_hash, attempt, fees | Fee bump / speed-up diagnostics     |
-| `TxMined`       | Receipt obtained      | tx_hash, receipt                        | Success; update state models        |
-| `TxFailed`      | Terminal failure      | reason, attempts                        | Alert; possible manual intervention |
-| `CallPerformed` | Read call completed   | from, to, function, raw_result          | Auditing read queries               |
+| Event           | When Fired            | Key Fields (excerpt)                | Purpose                             |
+|-----------------|-----------------------|-------------------------------------|-------------------------------------|
+| `TxQueued`      | Job dispatched        | to, data, payload                   | Track submission before broadcast   |
+| `TxBroadcasted` | First raw tx accepted | txHash, fields(fees,nonce), payload | Persist hash, start monitoring      |
+| `TxReplaced`    | Replacement broadcast | oldTxHash, newFields, attempt, payload | Fee bump / speed-up diagnostics     |
+| `TxMined`       | Receipt obtained      | txHash, receipt, payload            | Success; update state models        |
+| `TxFailed`      | Terminal failure      | to, data, reason, payload           | Alert; possible manual intervention |
+| `CallPerformed` | Read call completed   | from, address, function, rawResult  | Auditing read queries               |
+
+`payload` is `mixed` and can hold any serializable context (e.g. Eloquent model) to correlate app state and blockchain lifecycle.
+
+## Attaching Payload Example
+
+```php
+$order = Order::find(123);
+$contract->sendAsync('transfer', ['0xRecipient', 1000], [], $order);
+```
 
 ## Example Listener Registration
 
@@ -37,8 +46,12 @@ class LogTxBroadcasted
     {
         Log::info('TX broadcasted', [
             'hash' => $e->txHash,
-            'nonce' => $e->nonce,
-            'fees' => $e->fees,
+            'nonce' => $e->fields['nonce'] ?? null,
+            'fees' => [
+                'maxFeePerGas' => $e->fields['maxFeePerGas'] ?? null,
+                'maxPriorityFeePerGas' => $e->fields['maxPriorityFeePerGas'] ?? null,
+            ],
+            'payload_id' => method_exists($e->payload, 'getKey') ? $e->payload->getKey() : null,
         ]);
     }
 }
@@ -84,4 +97,3 @@ On `TxFailed`, inspect `reason`:
 - Gas estimation failure: review contract & args.
 - Broadcast rejection: fees or nonce invalid.
 - Timeout without receipt: consider manual bump or external explorer check.
-

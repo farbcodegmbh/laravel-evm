@@ -15,13 +15,13 @@
 
 ## ContractClient (via `Evm`)
 
-| Method                                     | Args                       | Returns              | Notes                                    |
-|--------------------------------------------|----------------------------|----------------------|------------------------------------------|
-| `at(address, abi)`                         | `string`, `array\| string` | self                 | Set target contract & ABI JSON/array     |
-| `call(fn, args=[])`                        | `string`, `array`          | `CallResult\| mixed` | eth_call; hex wrapped for decoding       |
-| `sendAsync(fn, args=[], opts=[])`          | `string`, `array`, `array` | `string`             | Dispatch async job; returns request UUID |
-| `wait(txHash, timeoutSec=120, pollMs=800)` | `string`, `int`, `int`     | `array\| null`       | Poll receipt until mined/timeout         |
-| `estimateGas(data, from?)`                 | `string`, `?string`        | `int`                | Uses eth_estimateGas + padding           |
+| Method                                          | Args                              | Returns              | Notes                                                                  |
+|-------------------------------------------------|-----------------------------------|----------------------|------------------------------------------------------------------------|
+| `at(address, abi)`                              | `string`, `array\| string`        | self                 | Set target contract & ABI JSON/array                                   |
+| `call(fn, args=[])`                             | `string`, `array`                 | `CallResult\| mixed` | eth_call; hex wrapped for decoding                                     |
+| `sendAsync(fn, args=[], opts=[], payload=null)` | `string`, `array`, `array`, mixed | `string`             | Dispatch async job; returns request UUID; payload flows through events |
+| `wait(txHash, timeoutSec=120, pollMs=800)`      | `string`, `int`, `int`            | `array\| null`       | Poll receipt until mined/timeout                                       |
+| `estimateGas(data, from?)`                      | `string`, `?string`               | `int`                | Uses eth_estimateGas + padding                                         |
 
 ### CallResult
 
@@ -62,10 +62,10 @@
 
 ## FeePolicy (via `EvmFees`)
 
-| Method                    | Args           | Returns                                                   | Notes                       |
-|---------------------------|----------------|-----------------------------------------------------------|-----------------------------|
-| `suggest()`               | -              | `['maxFeePerGas'=>string,'maxPriorityFeePerGas'=>string]` | Initial fee suggestion      |
-| `bump(previous, attempt)` | `array`, `int` | `array`                                                   | Adjust fees for replacement |
+| Method                                 | Args                                 | Returns                        | Notes                  |
+|----------------------------------------|--------------------------------------|--------------------------------|------------------------|
+| `suggest(callable $gasPriceFetcher)`   | `callable $gasPriceFetcher`          | `[priorityWei, maxFeeWei]`     | Initial fee suggestion |
+| `replace(int $oldPriority, int $oldMax)`| `int $oldPriority, int $oldMax`      | `[priorityWei, maxFeeWei]`     | Replacement bump       |
 
 ---
 
@@ -104,14 +104,14 @@ Start with `EvmLogs::query()` then chain:
 
 ## Events
 
-| Event           | When               | Key Data                          |
-|-----------------|--------------------|-----------------------------------|
-| `TxQueued`      | Job pushed         | request_id, function, address     |
-| `TxBroadcasted` | First broadcast ok | tx_hash, nonce, fees              |
-| `TxReplaced`    | Fee bump broadcast | old_tx_hash, new_tx_hash, attempt |
-| `TxMined`       | Receipt found      | tx_hash, receipt                  |
-| `TxFailed`      | Terminal failure   | reason, attempts                  |
-| `CallPerformed` | Read executed      | from, to, function, raw_result    |
+| Event           | When               | Key Data (excerpt)                     |
+|-----------------|--------------------|----------------------------------------|
+| `TxQueued`      | Job pushed         | to, data, payload                      |
+| `TxBroadcasted` | First broadcast ok | txHash, fields, payload                |
+| `TxReplaced`    | Fee bump broadcast | oldTxHash, newFields, attempt, payload |
+| `TxMined`       | Receipt found      | txHash, receipt, payload               |
+| `TxFailed`      | Terminal failure   | to, data, reason, payload              |
+| `CallPerformed` | Read executed      | from, address, function, rawResult     |
 
 ---
 
@@ -157,4 +157,4 @@ Maintains nonce ordering; for scaling use a distributed nonce manager.
 - Never log private keys.
 - Limit queue concurrency.
 - Use multiple RPC endpoints for resilience.
-
+- Attach domain payloads to events for traceability.

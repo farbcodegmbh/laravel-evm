@@ -65,6 +65,17 @@ $requestId = $contract->sendAsync('transfer', ['0xRecipient', 1000]);
 Writes enqueue a `SendTransaction` job. You need a running queue worker for progress (unless using the sync queue
 driver).
 
+### Attaching Context Payload
+
+You can attach any serializable payload (e.g. an Eloquent model instance) that will travel through all lifecycle events:
+
+```php
+$order = Order::find(123);
+$requestId = $contract->sendAsync('transfer', ['0xRecipient', 1000], [], $order);
+```
+
+Each emitted event (`TxQueued`, `TxBroadcasted`, `TxReplaced`, `TxMined`, `TxFailed`) will expose `$payload` so you can correlate blockchain progress with your domain object.
+
 ### Transaction Job Lifecycle
 
 The queued job executes these steps:
@@ -181,4 +192,4 @@ $block = \Farbcode\LaravelEvm\Facades\EvmRpc::call('eth_blockNumber');
 
 Direct access for diagnostics or unsupported methods.
 
-Proceed to Advanced Usage for log filtering and custom components.
+Proceed to Advanced Usage for log filtering, events, payload handling details and custom components.
