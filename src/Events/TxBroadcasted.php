@@ -6,5 +6,5 @@ namespace Farbcode\LaravelEvm\Events;
 
 class TxBroadcasted
 {
-    public function __construct(public string $txHash, public array $fields) {}
+    public function __construct(public string $txHash, public array $fields, public mixed $payload = null) {}
 }

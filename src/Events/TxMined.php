@@ -6,5 +6,5 @@ namespace Farbcode\LaravelEvm\Events;
 
 class TxMined
 {
-    public function __construct(public string $txHash, public array $receipt) {}
+    public function __construct(public string $txHash, public array $receipt, public mixed $payload = null) {}
 }

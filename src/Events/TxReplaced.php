@@ -11,5 +11,5 @@ class TxReplaced
      * @param  array  $newFields  Neue Felder inklusive angehobener Fees
      * @param  int  $attempt  Laufende Ersatz-Versuchsnummer (1-basiert)
      */
-    public function __construct(public string $oldTxHash, public array $newFields, public int $attempt) {}
+    public function __construct(public string $oldTxHash, public array $newFields, public int $attempt, public mixed $payload = null) {}
 }

@@ -68,7 +68,7 @@ class ContractClientGeneric implements ContractClient
         return (int) max(150000, ceil($n * $pad));
     }
 
-    public function sendAsync(string $function, array $args = [], array $opts = []): string
+    public function sendAsync(string $function, array $args = [], array $opts = [], mixed $payload = null): string
     {
         $data = $this->abi->encodeFunction($this->abiJson, $function, $args);
         $queue = (string) ($this->txCfg['queue'] ?? 'evm-send');
@@ -80,7 +80,8 @@ class ContractClientGeneric implements ContractClient
             data: $data,
             opts: array_merge($opts, ['request_id' => $requestId]),
             chainId: $this->chainId,
-            txCfg: $this->txCfg
+            txCfg: $this->txCfg,
+            payload: $payload
         ))->onQueue($queue);
 
         return $requestId;
