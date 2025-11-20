@@ -62,10 +62,10 @@
 
 ## FeePolicy (via `EvmFees`)
 
-| Method                     | Args               | Returns                   | Notes                  |
-|----------------------------|--------------------|---------------------------|------------------------|
-| `suggest(cb)`              | `callable`         | `[prioHex, maxHex]`       | Initial fee suggestion |
-| `replace(prioHex, maxHex)` | `string`, `string` | `[newPrioHex, newMaxHex]` | Replacement bump       |
+| Method                                 | Args                                 | Returns                        | Notes                  |
+|----------------------------------------|--------------------------------------|--------------------------------|------------------------|
+| `suggest(callable $gasPriceFetcher)`   | `callable $gasPriceFetcher`          | `[priorityWei, maxFeeWei]`     | Initial fee suggestion |
+| `replace(int $oldPriority, int $oldMax)`| `int $oldPriority, int $oldMax`      | `[priorityWei, maxFeeWei]`     | Replacement bump       |
 
 ---
 
