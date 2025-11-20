@@ -2,6 +2,14 @@
 
 All notable changes to `laravel-evm` will be documented in this file.
 
+## v0.3.0 - 2025-11-20
+
+### What's Changed
+
+* event payload support for async EVM transactions by @mweinschenk in https://github.com/farbcodegmbh/laravel-evm/pull/6
+
+**Full Changelog**: https://github.com/farbcodegmbh/laravel-evm/compare/v0.2.2...v0.3.0
+
 ## v0.2.2 - 2025-11-20
 
 ### What's Changed
