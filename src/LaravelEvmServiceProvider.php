@@ -16,12 +16,12 @@ use Farbcode\LaravelEvm\Contracts\TxBuilder;
 use Farbcode\LaravelEvm\Crypto\LocalNonceManager;
 use Farbcode\LaravelEvm\Crypto\PrivateKeySigner;
 use Farbcode\LaravelEvm\Crypto\TxBuilderEip1559;
+use Farbcode\LaravelEvm\Exceptions\RequirementException;
 use Farbcode\LaravelEvm\Support\LogFilterBuilder;
 use Farbcode\LaravelEvm\Support\SimpleFeePolicy;
 use Illuminate\Contracts\Foundation\Application;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
-use Farbcode\LaravelEvm\Exceptions\RequirementException;
 
 class LaravelEvmServiceProvider extends PackageServiceProvider
 {
