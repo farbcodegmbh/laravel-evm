@@ -62,8 +62,8 @@ class TestAbi implements AbiCodec
 it('dispatches CallPerformed on read calls', function () {
     Event::fake([CallPerformed::class]);
     $client = new ContractClientGeneric(new TestRpc, new TestSigner, new TestAbi, 137, [])
-        ->at('0xcontract', []);
+        ->at('0x000000000000000000000000000000000000c0de', []);
     $res = $client->call('foo', ['arg1']);
     expect($res)->toBeInstanceOf(CallResult::class);
-    Event::assertDispatched(CallPerformed::class, fn (CallPerformed $e) => $e->function === 'foo' && $e->address === '0xcontract');
+    Event::assertDispatched(CallPerformed::class, fn (CallPerformed $e) => $e->function === 'foo' && $e->address === '0x000000000000000000000000000000000000c0de');
 });

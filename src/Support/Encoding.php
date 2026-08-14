@@ -44,6 +44,20 @@ class Encoding
     }
 
     /**
+     * Validate an address and return it lowercased with a 0x prefix.
+     */
+    public static function normalizeAddress(string $address): string
+    {
+        $clean = strtolower(preg_replace('/^0[xX]/', '', trim($address)));
+
+        if (strlen($clean) !== 40 || ! ctype_xdigit($clean)) {
+            throw new \InvalidArgumentException('Address must be 20 bytes (40 hex chars), got: '.$address);
+        }
+
+        return '0x'.$clean;
+    }
+
+    /**
      * Apply the EIP-55 checksum to an address: the lowercase hex without the 0x
      * prefix is hashed, then each digit is upcased where the matching hash
      * nibble is >= 8.
