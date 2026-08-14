@@ -2,6 +2,8 @@
 
 namespace Farbcode\LaravelEvm\Support;
 
+use kornrunner\Keccak;
+
 class Encoding
 {
     /**
@@ -39,6 +41,30 @@ class Encoding
         $bin = hex2bin($clean) ?: '';
 
         return rtrim($bin, "\x00");
+    }
+
+    /**
+     * Apply the EIP-55 checksum to an address: the lowercase hex without the 0x
+     * prefix is hashed, then each digit is upcased where the matching hash
+     * nibble is >= 8.
+     */
+    public static function toChecksumAddress(string $address): string
+    {
+        // substr, not ltrim: ltrim takes a character list, so an address whose
+        // first nibble is 0 would lose those digits and come out truncated.
+        $hex = strtolower(str_starts_with(strtolower($address), '0x') ? substr($address, 2) : $address);
+
+        if (strlen($hex) !== 40 || ! ctype_xdigit($hex)) {
+            throw new \InvalidArgumentException('Address must be 20 bytes (40 hex chars), got: '.$address);
+        }
+
+        $hash = Keccak::hash($hex, 256);
+        $out = '0x';
+        for ($i = 0; $i < 40; $i++) {
+            $out .= hexdec($hash[$i]) >= 8 ? strtoupper($hex[$i]) : $hex[$i];
+        }
+
+        return $out;
     }
 
     /**

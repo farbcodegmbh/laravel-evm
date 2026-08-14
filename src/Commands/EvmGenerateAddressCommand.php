@@ -4,9 +4,9 @@
 
 namespace Farbcode\LaravelEvm\Commands;
 
+use Farbcode\LaravelEvm\Support\Encoding;
 use Illuminate\Console\Command;
 use kornrunner\Ethereum\Address as EthAddress;
-use kornrunner\Keccak;
 
 class EvmGenerateAddressCommand extends Command
 {
@@ -58,13 +58,6 @@ class EvmGenerateAddressCommand extends Command
 
     private function toChecksum(string $address): string
     {
-        $hex = strtolower(ltrim($address, '0x'));
-        $hash = Keccak::hash($hex, 256);
-        $out = '0x';
-        for ($i = 0; $i < strlen($hex); $i++) {
-            $out .= (hexdec($hash[$i]) >= 8) ? strtoupper($hex[$i]) : $hex[$i];
-        }
-
-        return $out;
+        return Encoding::toChecksumAddress($address);
     }
 }
