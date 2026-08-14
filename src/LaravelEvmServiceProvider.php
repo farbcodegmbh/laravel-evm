@@ -13,10 +13,8 @@ use Farbcode\LaravelEvm\Contracts\NonceManager;
 use Farbcode\LaravelEvm\Contracts\RpcClient;
 use Farbcode\LaravelEvm\Contracts\Signer;
 use Farbcode\LaravelEvm\Contracts\TransactionStore;
-use Farbcode\LaravelEvm\Contracts\TxBuilder;
 use Farbcode\LaravelEvm\Crypto\LocalNonceManager;
 use Farbcode\LaravelEvm\Crypto\PrivateKeySigner;
-use Farbcode\LaravelEvm\Crypto\TxBuilderEip1559;
 use Farbcode\LaravelEvm\Exceptions\RequirementException;
 use Farbcode\LaravelEvm\Support\EloquentTransactionStore;
 use Farbcode\LaravelEvm\Support\LogFilterBuilder;
@@ -76,7 +74,6 @@ class LaravelEvmServiceProvider extends PackageServiceProvider
 
         $this->app->singleton(NonceManager::class, fn () => new LocalNonceManager);
         $this->app->singleton(FeePolicy::class, fn () => new SimpleFeePolicy(config('evm.fees')));
-        $this->app->singleton(TxBuilder::class, fn () => new TxBuilderEip1559);
         $this->app->singleton(AbiCodec::class, fn () => new AbiCodecWeb3p);
 
         // bind, not singleton: a contract handle carries per-contract state, so
@@ -89,6 +86,7 @@ class LaravelEvmServiceProvider extends PackageServiceProvider
                 (int) config('evm.chain_id', 137),
                 [
                     'estimate_padding' => (float) config('evm.tx.estimate_padding', 1.2),
+                    'gas_floor' => (int) config('evm.tx.gas_floor', 21000),
                     'confirm_timeout' => (int) config('evm.tx.confirm_timeout', 120),
                     'max_replacements' => (int) config('evm.tx.max_replacements', 2),
                     'poll_interval_ms' => (int) config('evm.tx.poll_interval_ms', 800),

@@ -76,7 +76,9 @@ class ContractClientGeneric implements ContractClient
         $n = is_string($est) ? hexdec($est) : (int) $est;
         $pad = (float) ($this->txCfg['estimate_padding'] ?? 1.2);
 
-        return (int) max(150000, ceil($n * $pad));
+        // No floor here: this is a cost preview, so the padded estimate stands
+        // on its own rather than being rounded up to the job's lower bound.
+        return (int) ceil($n * $pad);
     }
 
     public function sendAsync(string $function, array $args = [], array $opts = [], mixed $payload = null): string

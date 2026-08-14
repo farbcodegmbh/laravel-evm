@@ -157,7 +157,10 @@ class SendTransaction implements ShouldQueue, ShouldQueueAfterCommit
         $est = $rpc->call('eth_estimateGas', [array_filter([
             'from' => $from, 'to' => $this->address, 'data' => $this->data, 'value' => $value,
         ], fn ($v) => $v !== '0x0')]);
-        $gas = (int) max(150000, ceil((is_string($est) ? hexdec($est) : (int) $est) * ($this->txCfg['estimate_padding'] ?? 1.2)));
+        $gas = (int) max(
+            (int) ($this->txCfg['gas_floor'] ?? 21000),
+            ceil((is_string($est) ? hexdec($est) : (int) $est) * ($this->txCfg['estimate_padding'] ?? 1.2))
+        );
 
         // Nonce
         $nonce = $nonces->getPendingNonce($from, function () use ($rpc, $from) {

@@ -4,6 +4,11 @@ on:
   release:
     types: [released]
 
+concurrency:
+  # Both release workflows push to main on the same event
+  group: release-main
+  cancel-in-progress: false
+
 jobs:
   update:
     runs-on: ubuntu-latest

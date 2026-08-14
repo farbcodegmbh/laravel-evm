@@ -25,6 +25,7 @@
     ],
     "require": {
         "php": "^8.4",
+        "ext-gmp": "*",
         "illuminate/contracts": "^11.0||^12.0",
         "kornrunner/ethereum-address": "^0.4.0",
         "kornrunner/keccak": "^1.1",

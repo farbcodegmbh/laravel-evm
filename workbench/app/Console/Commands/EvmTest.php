@@ -14,7 +14,7 @@ class EvmTest extends Command
 
     public function handle(): int
     {
-        $abiPath = storage_path('app/abi/HelloWorld.abi.json');
+        $abiPath = base_path('../workbench/demo-abi/HelloWorld.abi.json');
         if (! file_exists($abiPath)) {
             $this->error('ABI file missing: '.$abiPath);
 
