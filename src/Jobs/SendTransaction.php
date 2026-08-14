@@ -24,7 +24,6 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 use Throwable;
-use Web3p\EthereumTx\EIP1559Transaction;
 
 /**
  * Sends a transaction non blocking.
@@ -78,13 +77,6 @@ class SendTransaction implements ShouldQueue, ShouldQueueAfterCommit
 
         $from = $signer->getAddress();
 
-        $pk = method_exists($signer, 'privateKey') ? $signer->privateKey() : null;
-        if (! $pk) {
-            $this->terminate('signer_has_no_private_key');
-
-            return;
-        }
-
         // Estimate gas with padding
         $est = $rpc->call('eth_estimateGas', [[
             'from' => $from, 'to' => $this->address, 'data' => $this->data,
@@ -116,7 +108,7 @@ class SendTransaction implements ShouldQueue, ShouldQueueAfterCommit
         ];
 
         try {
-            $txHash = $this->signAndSend($rpc, $fields, $pk);
+            $txHash = $this->signAndSend($rpc, $signer, $fields);
             $nonces->markUsed($from, $nonce);
             event(new TxBroadcasted($txHash, $fields, $this->payload));
         } catch (Throwable $e) {
@@ -155,7 +147,7 @@ class SendTransaction implements ShouldQueue, ShouldQueueAfterCommit
             event(new TxReplaced($txHash, $fields, $attempt, $this->payload));
 
             try {
-                $txHash = $this->signAndSend($rpc, $fields, $pk);
+                $txHash = $this->signAndSend($rpc, $signer, $fields);
                 event(new TxBroadcasted($txHash, $fields, $this->payload));
             } catch (Throwable $e) {
                 // A rejected replacement usually means an earlier transaction
@@ -183,12 +175,9 @@ class SendTransaction implements ShouldQueue, ShouldQueueAfterCommit
         $this->terminate($this->exhaustedReason($minedCount, $nonce, $maxRep, $fields));
     }
 
-    private function signAndSend(RpcClient $rpc, array $fields, string $privateKey): string
+    private function signAndSend(RpcClient $rpc, Signer $signer, array $fields): string
     {
-        $raw = new EIP1559Transaction($fields)->sign($privateKey);
-        $rawHex = str_starts_with($raw, '0x') ? $raw : '0x'.$raw; // ensure 0x prefix
-
-        $txHash = $rpc->call('eth_sendRawTransaction', [$rawHex]);
+        $txHash = $rpc->call('eth_sendRawTransaction', [$signer->sign($fields)]);
 
         if (! is_string($txHash) || $txHash === '') {
             throw new RpcException('eth_sendRawTransaction did not return a transaction hash');

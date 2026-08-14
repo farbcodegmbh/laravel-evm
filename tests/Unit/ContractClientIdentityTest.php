@@ -44,9 +44,9 @@ class IdentitySigner implements Signer
         return '0x0000000000000000000000000000000000000001';
     }
 
-    public function privateKey(): string
+    public function sign(array $fields): string
     {
-        return '0x'.str_repeat('1', 64);
+        return '0xsigned';
     }
 }
 

@@ -17,9 +17,9 @@ class FakeSigner implements Signer
         return new Address($this->pk)->get();
     }
 
-    public function privateKey(): string
+    public function sign(array $fields): string
     {
-        return $this->pk;
+        return '0xsigned';
     }
 }
 class FakeNonce implements NonceManager

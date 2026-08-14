@@ -17,9 +17,9 @@ class FFailSigner implements Signer
         return '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef';
     }
 
-    public function privateKey(): string
+    public function sign(array $fields): string
     {
-        return $this->pk;
+        return '0xsigned';
     }
 }
 class FFailNonce implements NonceManager
