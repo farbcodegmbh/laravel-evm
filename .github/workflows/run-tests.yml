@@ -18,7 +18,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 5
     strategy:
-      fail-fast: true
+      # See every failing combination, not just the first
+      fail-fast: false
       matrix:
         os: [ubuntu-latest]
         php: [8.4]
