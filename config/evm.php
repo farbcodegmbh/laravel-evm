@@ -31,10 +31,14 @@ return [
     ],
 
     // Fee policy for EIP 1559.
+    // Fees are derived from the chain: maxFee = baseFee * base_multiplier + tip,
+    // where the tip comes from eth_maxPriorityFeePerGas. The gwei values below
+    // are floors, not the primary source - raise them for a chain that needs a
+    // minimum tip to be picked up (Polygon typically wants 25-30).
     'fees' => [
-        'min_priority_gwei' => env('EVM_MIN_PRIORITY_GWEI', 50),
-        'min_maxfee_gwei' => env('EVM_MIN_MAXFEE_GWEI', 120),
-        'base_multiplier' => env('EVM_BASE_MULTIPLIER', 3),
+        'min_priority_gwei' => env('EVM_MIN_PRIORITY_GWEI', 1),
+        'min_maxfee_gwei' => env('EVM_MIN_MAXFEE_GWEI', 0),
+        'base_multiplier' => env('EVM_BASE_MULTIPLIER', 2),
         'replacement_factor' => env('EVM_REPLACEMENT_FACTOR', 1.5),
     ],
 

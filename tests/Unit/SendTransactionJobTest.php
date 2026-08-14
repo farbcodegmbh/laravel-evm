@@ -5,6 +5,7 @@ use Farbcode\LaravelEvm\Contracts\NonceManager;
 use Farbcode\LaravelEvm\Contracts\RpcClient;
 use Farbcode\LaravelEvm\Contracts\Signer;
 use Farbcode\LaravelEvm\Jobs\SendTransaction;
+use Farbcode\LaravelEvm\Support\FeeSnapshot;
 use Illuminate\Support\Facades\Event;
 use kornrunner\Ethereum\Address;
 
@@ -40,7 +41,7 @@ class FakeNonce implements NonceManager
 }
 class FakeFees implements FeePolicy
 {
-    public function suggest(callable $gasPriceFetcher): array
+    public function suggest(FeeSnapshot $snapshot): array
     {
         return [1_000_000_000, 50_000_000_000];
     }
