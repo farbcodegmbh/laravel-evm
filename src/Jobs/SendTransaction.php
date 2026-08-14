@@ -13,6 +13,8 @@ use Farbcode\LaravelEvm\Events\TxFailed;
 use Farbcode\LaravelEvm\Events\TxMined;
 use Farbcode\LaravelEvm\Events\TxQueued;
 use Farbcode\LaravelEvm\Events\TxReplaced;
+use Farbcode\LaravelEvm\Events\TxReverted;
+use Farbcode\LaravelEvm\Support\Receipt;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
@@ -93,8 +95,8 @@ class SendTransaction implements ShouldQueue
         $deadline = time() + $timeout;
         while (time() < $deadline) {
             $rec = $rpc->call('eth_getTransactionReceipt', [$txHash]);
-            if (! empty($rec)) {
-                event(new TxMined($txHash, $rec, $this->payload));
+            if (is_array($rec) && $rec !== []) {
+                $this->settle($txHash, $rec);
 
                 return;
             }
@@ -125,8 +127,8 @@ class SendTransaction implements ShouldQueue
             $deadline = time() + $timeout;
             while (time() < $deadline) {
                 $rec = $rpc->call('eth_getTransactionReceipt', [$txHash]);
-                if (! empty($rec)) {
-                    event(new TxMined($txHash, $rec, $this->payload));
+                if (is_array($rec) && $rec !== []) {
+                    $this->settle($txHash, $rec);
 
                     return;
                 }
@@ -140,5 +142,20 @@ class SendTransaction implements ShouldQueue
             sprintf('no_receipt_after_%d_replacements (last maxFee=%d priority=%d)', $maxRep, $fields['maxFeePerGas'], $fields['maxPriorityFeePerGas']),
             $this->payload
         ));
+    }
+
+    /**
+     * A receipt only proves inclusion. A reverted call has a receipt too, with
+     * status 0x0, and must not be reported as mined.
+     */
+    private function settle(string $txHash, array $receipt): void
+    {
+        if (Receipt::isReverted($receipt)) {
+            event(new TxReverted($txHash, $receipt, $this->payload));
+
+            return;
+        }
+
+        event(new TxMined($txHash, $receipt, $this->payload));
     }
 }
