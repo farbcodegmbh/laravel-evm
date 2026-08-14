@@ -162,6 +162,18 @@ php artisan queue:work --queue=evm-send --timeout=400
 
 Horizon supervisors need the same on their `timeout` key.
 
+### The GMP check moved
+
+Missing GMP used to throw from the service provider's `register()` phase, which
+runs on every request and every artisan command - so the whole application went
+down over a feature it might never use. The check now sits where the big
+integer maths happens, so only the EVM call fails, with the same message.
+
+`composer.json` declares `ext-gmp`, which is the real safeguard: composer
+refuses to install without it. The runtime guard only covers what composer
+cannot see - `--ignore-platform-reqs`, a prebuilt `vendor/` shipped to another
+machine, or a PHP-FPM pool whose extensions differ from the CLI that installed.
+
 ### `health()` output
 
 Credentials are redacted, and the result gained an `endpoints` key reporting
