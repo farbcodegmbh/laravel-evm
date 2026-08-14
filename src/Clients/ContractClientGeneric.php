@@ -9,6 +9,7 @@ use Farbcode\LaravelEvm\Contracts\Signer;
 use Farbcode\LaravelEvm\Events\CallPerformed;
 use Farbcode\LaravelEvm\Jobs\SendTransaction;
 use Farbcode\LaravelEvm\Support\CallResult;
+use Farbcode\LaravelEvm\Support\Encoding;
 use Illuminate\Support\Str;
 
 class ContractClientGeneric implements ContractClient
@@ -33,7 +34,10 @@ class ContractClientGeneric implements ContractClient
     public function at(string $address, array|string $abi = []): self
     {
         $bound = clone $this;
-        $bound->address = $address;
+        // Validate here rather than at broadcast time: this address becomes the
+        // `to` field of a signed transaction, and a malformed one is not
+        // recoverable once it is on chain.
+        $bound->address = Encoding::normalizeAddress($address);
         $bound->abiJson = $abi;
 
         return $bound;
