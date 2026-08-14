@@ -35,7 +35,7 @@ class EvmGenerateAddressCommand extends Command
                 return self::FAILURE;
             }
             $privateKey = $addr->getPrivateKey(); // 64 hex (no 0x)
-            $publicKey = $addr->getPublicKey();   // uncompressed (no 0x, begins with 04)
+            $publicKey = $addr->getPublicKey();   // 64 byte uncompressed key, no 0x and no 04 prefix
             $rawAddress = $addr->get();           // 40 hex lowercase
             $checksum = $this->toChecksum('0x'.$rawAddress);
 
