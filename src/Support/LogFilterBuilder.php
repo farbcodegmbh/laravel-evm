@@ -154,7 +154,19 @@ class LogFilterBuilder
 
     private function normalizeTopic(string $topic): string
     {
-        return str_starts_with($topic, '0x') ? $topic : '0x'.ltrim($topic, '0x');
+        $clean = str_starts_with($topic, '0x') || str_starts_with($topic, '0X')
+            ? substr($topic, 2)
+            : $topic;
+
+        if (! ctype_xdigit($clean)) {
+            throw new \InvalidArgumentException('Topic must be hex, got '.$topic);
+        }
+
+        if (strlen($clean) !== 64) {
+            throw new \InvalidArgumentException('Topic must be 32 bytes (64 hex chars), got '.strlen($clean));
+        }
+
+        return '0x'.strtolower($clean);
     }
 
     private function normalizeBlock(int|string $block): string

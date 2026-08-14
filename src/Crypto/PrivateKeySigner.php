@@ -19,7 +19,9 @@ class PrivateKeySigner implements Signer
 
     public function getAddress(): string
     {
-        $address = new Address(ltrim($this->privateKey, '0x'));
+        // substr, not ltrim: ltrim takes a character list, so a key whose first
+        // nibble is 0 would lose those digits too and fail the length check.
+        $address = new Address(substr($this->privateKey, 2));
 
         return '0x'.$address->get();
     }
