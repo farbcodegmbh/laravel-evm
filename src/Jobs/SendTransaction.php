@@ -9,6 +9,7 @@ use Farbcode\LaravelEvm\Contracts\FeePolicy;
 use Farbcode\LaravelEvm\Contracts\NonceManager;
 use Farbcode\LaravelEvm\Contracts\RpcClient;
 use Farbcode\LaravelEvm\Contracts\Signer;
+use Farbcode\LaravelEvm\Contracts\TransactionStore;
 use Farbcode\LaravelEvm\Events\TxBroadcasted;
 use Farbcode\LaravelEvm\Events\TxFailed;
 use Farbcode\LaravelEvm\Events\TxMined;
@@ -17,8 +18,10 @@ use Farbcode\LaravelEvm\Events\TxReplaced;
 use Farbcode\LaravelEvm\Events\TxReverted;
 use Farbcode\LaravelEvm\Exceptions\EvmException;
 use Farbcode\LaravelEvm\Exceptions\RpcException;
+use Farbcode\LaravelEvm\Models\EvmTransaction;
 use Farbcode\LaravelEvm\Support\Encoding;
 use Farbcode\LaravelEvm\Support\FeeSnapshot;
+use Farbcode\LaravelEvm\Support\NullTransactionStore;
 use Farbcode\LaravelEvm\Support\Receipt;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -102,6 +105,25 @@ class SendTransaction implements ShouldQueue, ShouldQueueAfterCommit
      */
     private array $hashes = [];
 
+    private ?TransactionStore $store = null;
+
+    /**
+     * Persist the current state under the request id sendAsync() handed back,
+     * which is what finally makes that id useful for correlation.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    private function track(array $attributes): void
+    {
+        $requestId = $this->opts['request_id'] ?? null;
+
+        if ($this->store === null || ! is_string($requestId)) {
+            return;
+        }
+
+        $this->store->record($requestId, $attributes);
+    }
+
     public function __construct(
         public string $address,
         public string $data,
@@ -113,13 +135,23 @@ class SendTransaction implements ShouldQueue, ShouldQueueAfterCommit
         $this->timeout = $this->confirmTimeout() * (1 + $this->maxReplacements()) + self::TIMEOUT_SLACK_SECONDS;
     }
 
-    public function handle(RpcClient $rpc, Signer $signer, NonceManager $nonces, FeePolicy $fees): void
+    public function handle(RpcClient $rpc, Signer $signer, NonceManager $nonces, FeePolicy $fees, ?TransactionStore $store = null): void
     {
+        $this->store = $store ?? new NullTransactionStore;
+
         event(new TxQueued($this->address, $this->data, $this->payload));
 
         $from = $signer->getAddress();
 
         $value = Encoding::toHexQuantity($this->opts['value'] ?? 0);
+
+        $this->track([
+            'signer' => $from,
+            'to' => $this->address,
+            'data' => $this->data,
+            'value' => (string) ($this->opts['value'] ?? '0'),
+            'status' => EvmTransaction::STATUS_QUEUED,
+        ]);
 
         // Estimate gas with padding
         $est = $rpc->call('eth_estimateGas', [array_filter([
@@ -153,6 +185,7 @@ class SendTransaction implements ShouldQueue, ShouldQueueAfterCommit
         try {
             $txHash = $this->signAndSend($rpc, $signer, $fields);
             $nonces->markUsed($from, $nonce);
+            $this->track(['nonce' => $nonce, 'tx_hash' => $txHash, 'hashes' => $this->hashes, 'status' => EvmTransaction::STATUS_BROADCAST]);
             event(new TxBroadcasted($txHash, $fields, $this->payload));
         } catch (Throwable $e) {
             // The node may still have accepted the transaction before the error
@@ -191,6 +224,7 @@ class SendTransaction implements ShouldQueue, ShouldQueueAfterCommit
 
             try {
                 $txHash = $this->signAndSend($rpc, $signer, $fields);
+                $this->track(['tx_hash' => $txHash, 'hashes' => $this->hashes]);
                 event(new TxBroadcasted($txHash, $fields, $this->payload));
             } catch (Throwable $e) {
                 // A rejected replacement usually means an earlier transaction
@@ -275,11 +309,13 @@ class SendTransaction implements ShouldQueue, ShouldQueueAfterCommit
     private function settle(string $txHash, array $receipt): void
     {
         if (Receipt::isReverted($receipt)) {
+            $this->track(['tx_hash' => $txHash, 'receipt' => $receipt, 'status' => EvmTransaction::STATUS_REVERTED]);
             event(new TxReverted($txHash, $receipt, $this->payload));
 
             return;
         }
 
+        $this->track(['tx_hash' => $txHash, 'receipt' => $receipt, 'status' => EvmTransaction::STATUS_MINED]);
         event(new TxMined($txHash, $receipt, $this->payload));
     }
 
@@ -290,6 +326,8 @@ class SendTransaction implements ShouldQueue, ShouldQueueAfterCommit
      */
     private function terminate(string $reason): void
     {
+        $this->track(['status' => EvmTransaction::STATUS_FAILED, 'reason' => $reason]);
+
         event(new TxFailed($this->address, $this->data, $reason, $this->payload));
 
         $this->fail(new EvmException($reason));

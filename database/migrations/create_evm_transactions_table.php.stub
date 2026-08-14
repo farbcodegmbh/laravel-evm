@@ -1,0 +1,34 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('evm_transactions', function (Blueprint $table) {
+            $table->id();
+            $table->uuid('request_id')->unique();
+            $table->string('signer', 42)->index();
+            $table->string('to', 42);
+            $table->text('data');
+            // Wei does not fit in a bigint, so amounts are stored as decimal strings
+            $table->string('value', 80)->default('0');
+            $table->unsignedBigInteger('nonce')->nullable();
+            $table->string('tx_hash', 66)->nullable()->index();
+            // Every hash signed for the nonce, including replacements
+            $table->json('hashes')->nullable();
+            $table->string('status', 16)->index();
+            $table->json('receipt')->nullable();
+            $table->text('reason')->nullable();
+            $table->timestamps();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('evm_transactions');
+    }
+};
