@@ -10,14 +10,29 @@ $abi = file_get_contents(base_path('abi/ERC20.json'));
 $contract = \Farbcode\LaravelEvm\Facades\Evm::at('0xTokenAddress', $abi);
 ```
 
-Obtain a reusable handle for subsequent calls.
+`at()` returns a **new** handle bound to that contract; it does not modify the
+client it was called on. Two handles are therefore independent:
+
+```php
+$usdc = Evm::at('0xA0b8...', $abi);
+$dai  = Evm::at('0x6B17...', $abi);
+
+$usdc->call('symbol');   // still USDC
+```
 
 ## Reads (eth_call)
 
 ```php
 $symbol = $contract->call('symbol')->as('string');
-$balanceHex = $contract->call('balanceOf', ['0xUser']);
-$balance = $balanceHex->as('uint');
+$balance = $contract->call('balanceOf', ['0xUser'])->as('uint256');
+```
+
+Integers come back as **decimal strings**, whatever their size. A wei amount
+does not fit in a PHP integer, so returning one would silently lose precision.
+Use bcmath or GMP to work with them:
+
+```php
+$whole = bcdiv($balance, bcpow('10', '18'), 6);
 ```
 
 Reads are synchronous and return a `CallResult` wrapper for convenience decoding.
@@ -27,10 +42,13 @@ Reads are synchronous and return a `CallResult` wrapper for convenience decoding
 Any raw hex result from `call()` is wrapped in `CallResult`. Supported `as()` types:
 
 - `string`, `bytes`
-- `uint`, `uint256`
-- `int`, `int256`
+- `uint`, `uint8` … `uint256` - returned as a decimal string
+- `int`, `int8` … `int256` - returned as a decimal string, negatives resolved
 - `bool`
 - `address`
+
+`as()` decodes a single return value. A function returning a tuple needs its
+own decoding.
 
 Example:
 
@@ -44,13 +62,21 @@ If you need the original hex use `->raw()` or cast to string.
 
 #### Error Handling for Reads
 
-A revert during `eth_call` generally yields an empty or error RPC response; you can catch exceptions around the facade:
+A revert and an outage are different problems and have different exceptions:
 
 ```php
+use Farbcode\LaravelEvm\Exceptions\RpcErrorException;
+use Farbcode\LaravelEvm\Exceptions\RpcTransportException;
+
 try {
-  $value = $contract->call('someFn');
-} catch (\Throwable $e) {
-  // Log & fallback
+    $value = $contract->call('someFn');
+} catch (RpcErrorException $e) {
+    // the node answered: a revert, bad arguments, insufficient funds
+    if ($e->isRevert()) {
+        report($e->rpcData);   // ABI encoded revert reason, when supplied
+    }
+} catch (RpcTransportException $e) {
+    // no endpoint could be reached - retry later
 }
 ```
 
@@ -59,8 +85,25 @@ Reads should not emit failure events; only `CallPerformed` is emitted on success
 ## Writes (Async Transactions)
 
 ```php
-$requestId = $contract->sendAsync('transfer', ['0xRecipient', 1000]);
+$requestId = $contract->sendAsync('transfer', ['0xRecipient', '1000000000000000000']);
 ```
+
+Amounts may be given as an int, a decimal string or `0x`-hex. Pass anything
+above `PHP_INT_MAX` as a **string**, not an int.
+
+### Sending Value
+
+For a payable function, put the amount in wei into `$opts`:
+
+```php
+$contract->sendAsync('deposit', [], ['value' => '1000000000000000000']);   // 1 ETH
+```
+
+### Transactional Safety
+
+`sendAsync()` performs an irreversible action, and the job waits for the
+surrounding database transaction to commit before it runs. A rollback therefore
+cancels the broadcast rather than racing it.
 
 Writes enqueue a `SendTransaction` job. You need a running queue worker for progress (unless using the sync queue
 driver).
@@ -76,6 +119,20 @@ $requestId = $contract->sendAsync('transfer', ['0xRecipient', 1000], [], $order)
 
 Each emitted event (`TxQueued`, `TxBroadcasted`, `TxReplaced`, `TxMined`, `TxFailed`) will expose `$payload` so you can correlate blockchain progress with your domain object.
 
+### Tracking a Transaction
+
+With `EVM_TRACKING=true` and the published migration, every transaction is
+recorded under the id `sendAsync()` returned:
+
+```php
+use Farbcode\LaravelEvm\Models\EvmTransaction;
+
+$requestId = $contract->sendAsync('transfer', [$to, $amount]);
+
+EvmTransaction::where('request_id', $requestId)->first()?->status;
+// queued | broadcast | mined | reverted | failed
+```
+
 ### Transaction Job Lifecycle
 
 The queued job executes these steps:
@@ -88,7 +145,13 @@ The queued job executes these steps:
 6. Broadcast to RPC.
 7. Receipt polling until mined or timeout.
 8. Optional fee bump & replacement attempts.
-   Events provide visibility: `TxQueued`, `TxBroadcasted`, `TxReplaced`, `TxMined`, `TxFailed`.
+
+Events provide visibility: `TxQueued`, `TxBroadcasted`, `TxReplaced`, `TxMined`,
+`TxReverted`, `TxFailed`.
+
+`TxMined` means mined **and** successful. A transaction that was included but
+reverted emits `TxReverted` instead: gas was spent and no state change
+happened, so it must not be treated as a success.
 
 #### Common Write Pitfalls
 
@@ -106,11 +169,17 @@ experiments but not recommended in production (no concurrency control, risk of n
 Start a dedicated worker for the send queue:
 
 ```bash
-php artisan queue:work --queue=evm-send
+php artisan queue:work --queue=evm-send --timeout=400
 ```
 
-**CRITICAL: Run exactly ONE worker process per signing address for the `evm-send` queue.** This guarantees strict nonce ordering. Multiple concurrent workers sharing the same private key will race nonces.
-If you require higher throughput, add additional signing addresses rather than scaling processes for a single key.
+Transactions for one signing address are serialised by a cache lock, so a
+second worker queues behind the first instead of racing the nonce. Running one
+worker per signing address is still the simpler setup and keeps ordering
+obvious. For higher throughput, add signing addresses rather than processes.
+
+Set `--timeout` at least as high as the job's own: with the shipped defaults a
+transaction can take `(1 + max_replacements) * confirm_timeout` seconds before
+it gives up.
 
 ### Horizon Example
 
@@ -132,7 +201,7 @@ return [
             'maxJobs' => 0,
             'memory' => 128,
             'tries' => 1,
-            'timeout' => 180,
+            'timeout' => 400, // must cover confirm_timeout plus every replacement
             'nice' => 0,
         ],
     ],
@@ -167,22 +236,31 @@ If a transaction never appears:
 ### Waiting for Receipt
 
 ```php
+use Farbcode\LaravelEvm\Support\Receipt;
+
 $receipt = $contract->wait('0xTxHash');
-if ($receipt) {
-    // success
+
+if (Receipt::isSuccessful($receipt)) {
+    // mined and did not revert
 }
 ```
 
-Wait uses polling; no fee replacement logic here.
+A receipt only proves that the transaction was included. `Receipt::isReverted()`
+tells the two apart. Wait uses polling; no fee replacement logic here.
 
 ## Gas Estimation
 
+`estimateGas()` takes encoded calldata, not a result:
+
 ```php
-$data = $contract->call('symbol')->raw(); // Example encoded data reuse
+$data = app(\Farbcode\LaravelEvm\Contracts\AbiCodec::class)
+    ->encodeFunction($abi, 'transfer', ['0xRecipient', '1000']);
+
 $gas = $contract->estimateGas($data);
 ```
 
-Adds configurable padding to avoid underestimation.
+Adds configurable padding to avoid underestimation. `sendAsync()` estimates on
+its own, so this is only needed for a cost preview.
 
 ## Raw RPC
 

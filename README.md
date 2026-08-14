@@ -27,8 +27,8 @@ All information on how to use this package can be found on our official document
 ## Requirements
 
 - PHP >= 8.4
-- Laravel >= 12
-- GMP PHP extension installed and enabled
+- Laravel >= 11
+- GMP PHP extension (`ext-gmp`) installed and enabled
 
 ## Installation
 
@@ -58,19 +58,26 @@ EVM_PRIVATE_KEY=0xabc123...64hex
 use Farbcode\LaravelEvm\Facades\Evm;
 
 $abi = file_get_contents(storage_path('app/abi/MyContract.abi.json'));
-$contract = LaravelEvm::at('0xYourContract', $abi);
+$contract = Evm::at('0xYourContract', $abi);
 
-// Read call
-$balance = $contract->call('balanceOf', ['0xUser']);
+// Read call - integers come back as decimal strings
+$balance = $contract->call('balanceOf', ['0xUser'])->as('uint256');
 
 // Write (async - enqueued on EVM_QUEUE default:evm-send, see https://laravel-evm.farbcode.net/basic-usage#writes-async-transactions for more information)
 $jobId = $contract->sendAsync('transfer', ['0xRecipient', 100]);
 ```
 
-Wait for a known tx hash:
+Wait for a known tx hash. A receipt only proves inclusion, so check the status
+before treating it as a success:
 
 ```php
+use Farbcode\LaravelEvm\Support\Receipt;
+
 $receipt = $contract->wait('0xTxHash');
+
+if (Receipt::isSuccessful($receipt)) {
+    // mined and did not revert
+}
 ```
 
 ### Log Filtering & Event Decoding
