@@ -120,6 +120,11 @@ class SendTransaction implements ShouldQueue, ShouldQueueAfterCommit
             $nonces->markUsed($from, $nonce);
             event(new TxBroadcasted($txHash, $fields, $this->payload));
         } catch (Throwable $e) {
+            // The node may still have accepted the transaction before the error
+            // (a lost response, or "already known" on a retry). Either way the
+            // cached nonce can no longer be trusted, so force a re-read.
+            $nonces->invalidate($from);
+
             $this->terminate('rpc_send_error: '.$e->getMessage());
 
             return;
@@ -166,7 +171,16 @@ class SendTransaction implements ShouldQueue, ShouldQueueAfterCommit
             }
         }
 
-        $this->terminate($this->exhaustedReason($rpc, $from, $nonce, $maxRep, $fields));
+        $minedCount = $this->minedNonceCount($rpc, $from);
+
+        // Nothing consumed the nonce, so every transaction we signed for it was
+        // dropped. The cache is now one ahead of the chain and would open a gap
+        // that leaves all later transactions pending forever.
+        if ($minedCount !== null && $minedCount <= $nonce) {
+            $nonces->invalidate($from);
+        }
+
+        $this->terminate($this->exhaustedReason($minedCount, $nonce, $maxRep, $fields));
     }
 
     private function signAndSend(RpcClient $rpc, array $fields, string $privateKey): string
@@ -250,10 +264,23 @@ class SendTransaction implements ShouldQueue, ShouldQueueAfterCommit
     }
 
     /**
+     * How many transactions the chain has confirmed for this account, or null
+     * when the lookup itself failed.
+     */
+    private function minedNonceCount(RpcClient $rpc, string $from): ?int
+    {
+        try {
+            return (int) hexdec((string) $rpc->call('eth_getTransactionCount', [$from, 'latest']));
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    /**
      * A consumed nonce means one of our transactions did make it on chain and
      * only the receipt lookup kept missing it, which is worth saying out loud.
      */
-    private function exhaustedReason(RpcClient $rpc, string $from, int $nonce, int $maxRep, array $fields): string
+    private function exhaustedReason(?int $minedCount, int $nonce, int $maxRep, array $fields): string
     {
         $reason = sprintf(
             'no_receipt_after_%d_replacements (last maxFee=%s priority=%s)',
@@ -262,13 +289,7 @@ class SendTransaction implements ShouldQueue, ShouldQueueAfterCommit
             $fields['maxPriorityFeePerGas'],
         );
 
-        try {
-            $mined = (int) hexdec((string) $rpc->call('eth_getTransactionCount', [$from, 'latest']));
-        } catch (Throwable) {
-            return $reason;
-        }
-
-        if ($mined > $nonce) {
+        if ($minedCount !== null && $minedCount > $nonce) {
             return $reason.sprintf(' - nonce %d was consumed on chain, one of %d broadcast transactions may have been mined', $nonce, count($this->hashes));
         }
 
