@@ -66,7 +66,9 @@ class LaravelEvmServiceProvider extends PackageServiceProvider
         $this->app->singleton(TxBuilder::class, fn () => new TxBuilderEip1559);
         $this->app->singleton(AbiCodec::class, fn () => new AbiCodecWeb3p);
 
-        $this->app->singleton(ContractClient::class, function (Application $app) {
+        // bind, not singleton: a contract handle carries per-contract state, so
+        // sharing one instance across a request or an Octane worker is unsafe.
+        $this->app->bind(ContractClient::class, function (Application $app) {
             return new ContractClientGeneric(
                 $app->make(RpcClient::class),
                 $app->make(Signer::class),

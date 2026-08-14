@@ -4,6 +4,11 @@ namespace Farbcode\LaravelEvm\Contracts;
 
 interface ContractClient
 {
+    /**
+     * Returns a new handle bound to the given contract and ABI. Implementations
+     * must not mutate the instance this is called on, so that handles taken
+     * earlier keep pointing at their own contract.
+     */
     public function at(string $address, array|string $abi = []): self;
 
     /** Synchronous read only call returning raw hex or decoded value depending on ABI usage. */
