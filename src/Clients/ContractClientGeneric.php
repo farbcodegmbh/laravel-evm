@@ -82,6 +82,12 @@ class ContractClientGeneric implements ContractClient
     public function sendAsync(string $function, array $args = [], array $opts = [], mixed $payload = null): string
     {
         $data = $this->abi->encodeFunction($this->abiJson, $function, $args);
+
+        // Validate here so a bad amount surfaces at the call site rather than
+        // inside a worker minutes later.
+        if (isset($opts['value'])) {
+            $opts['value'] = Encoding::toHexQuantity($opts['value']);
+        }
         $queue = (string) ($this->txCfg['queue'] ?? 'evm-send');
 
         // Generate a pseudo job identifier (not the queue internal ID) for tracking

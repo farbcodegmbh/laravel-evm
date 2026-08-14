@@ -16,6 +16,7 @@ use Farbcode\LaravelEvm\Events\TxReplaced;
 use Farbcode\LaravelEvm\Events\TxReverted;
 use Farbcode\LaravelEvm\Exceptions\EvmException;
 use Farbcode\LaravelEvm\Exceptions\RpcException;
+use Farbcode\LaravelEvm\Support\Encoding;
 use Farbcode\LaravelEvm\Support\FeeSnapshot;
 use Farbcode\LaravelEvm\Support\Receipt;
 use Illuminate\Bus\Queueable;
@@ -78,10 +79,12 @@ class SendTransaction implements ShouldQueue, ShouldQueueAfterCommit
 
         $from = $signer->getAddress();
 
+        $value = Encoding::toHexQuantity($this->opts['value'] ?? 0);
+
         // Estimate gas with padding
-        $est = $rpc->call('eth_estimateGas', [[
-            'from' => $from, 'to' => $this->address, 'data' => $this->data,
-        ]]);
+        $est = $rpc->call('eth_estimateGas', [array_filter([
+            'from' => $from, 'to' => $this->address, 'data' => $this->data, 'value' => $value,
+        ], fn ($v) => $v !== '0x0')]);
         $gas = (int) max(150000, ceil((is_string($est) ? hexdec($est) : (int) $est) * ($this->txCfg['estimate_padding'] ?? 1.2)));
 
         // Nonce
@@ -102,7 +105,7 @@ class SendTransaction implements ShouldQueue, ShouldQueueAfterCommit
             'gas' => $gas,
             'to' => $this->address,
             'from' => $from,
-            'value' => 0,
+            'value' => $value,
             'data' => $this->data,
             'accessList' => [],
         ];
