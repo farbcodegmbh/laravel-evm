@@ -40,4 +40,149 @@ class Encoding
 
         return rtrim($bin, "\x00");
     }
+
+    /**
+     * Bit width of a uint/int ABI type. `uint` and `int` are aliases for 256 bits.
+     */
+    public static function bitsOfType(string $type): int
+    {
+        $suffix = str_starts_with($type, 'uint')
+            ? substr($type, 4)
+            : (str_starts_with($type, 'int') ? substr($type, 3) : null);
+
+        if ($suffix === null) {
+            throw new \InvalidArgumentException('Not an integer ABI type: '.$type);
+        }
+
+        if ($suffix === '') {
+            return 256;
+        }
+
+        if (! ctype_digit($suffix)) {
+            throw new \InvalidArgumentException('Invalid integer ABI type: '.$type);
+        }
+
+        $bits = (int) $suffix;
+        if ($bits < 8 || $bits > 256 || $bits % 8 !== 0) {
+            throw new \InvalidArgumentException('Invalid integer width in ABI type: '.$type);
+        }
+
+        return $bits;
+    }
+
+    /**
+     * Encode an unsigned integer as a 32-byte ABI word (64 hex chars, no 0x prefix).
+     * Accepts an int, a decimal string or a 0x-prefixed hex string; rejects
+     * anything outside the range of the given bit width.
+     */
+    public static function uintToWord(int|string $value, int $bits = 256): string
+    {
+        $number = self::toGmp($value);
+
+        if (gmp_sign($number) < 0) {
+            throw new \InvalidArgumentException('Value must not be negative for uint'.$bits);
+        }
+
+        if (gmp_cmp($number, gmp_sub(self::twoPow($bits), 1)) > 0) {
+            throw new \InvalidArgumentException('Value exceeds the range of uint'.$bits);
+        }
+
+        return self::padWord(gmp_strval($number, 16));
+    }
+
+    /**
+     * Encode a signed integer as a 32-byte ABI word using two's complement.
+     */
+    public static function intToWord(int|string $value, int $bits = 256): string
+    {
+        $number = self::toGmp($value);
+
+        if (gmp_cmp($number, gmp_neg(self::twoPow($bits - 1))) < 0
+            || gmp_cmp($number, gmp_sub(self::twoPow($bits - 1), 1)) > 0) {
+            throw new \InvalidArgumentException('Value exceeds the range of int'.$bits);
+        }
+
+        if (gmp_sign($number) < 0) {
+            $number = gmp_add(self::twoPow(256), $number);
+        }
+
+        return self::padWord(gmp_strval($number, 16));
+    }
+
+    /**
+     * Decode a hex word into an unsigned decimal string. Always returns a string
+     * so that values beyond PHP's integer range survive intact.
+     */
+    public static function wordToUint(string $hex): string
+    {
+        return gmp_strval(self::hexToGmp($hex), 10);
+    }
+
+    /**
+     * Decode a hex word into a signed decimal string, resolving two's complement.
+     */
+    public static function wordToInt(string $hex, int $bits = 256): string
+    {
+        $number = self::hexToGmp($hex);
+
+        if (gmp_testbit($number, $bits - 1)) {
+            $number = gmp_sub($number, self::twoPow($bits));
+        }
+
+        return gmp_strval($number, 10);
+    }
+
+    private static function toGmp(int|string $value): \GMP
+    {
+        if (is_int($value)) {
+            return gmp_init($value, 10);
+        }
+
+        $trimmed = trim($value);
+
+        if (preg_match('/^-?[0-9]+$/', $trimmed)) {
+            return gmp_init($trimmed, 10);
+        }
+
+        if (preg_match('/^0[xX][0-9a-fA-F]+$/', $trimmed)) {
+            return gmp_init(substr($trimmed, 2), 16);
+        }
+
+        throw new \InvalidArgumentException('Expected an integer, a decimal string or 0x-prefixed hex, got: '.$value);
+    }
+
+    private static function hexToGmp(string $hex): \GMP
+    {
+        $clean = preg_replace('/^0[xX]/', '', trim($hex));
+
+        if ($clean === '') {
+            return gmp_init(0, 10);
+        }
+
+        if (! ctype_xdigit($clean)) {
+            throw new \InvalidArgumentException('Expected hex, got: '.$hex);
+        }
+
+        return gmp_init($clean, 16);
+    }
+
+    /**
+     * gmp_pow() refuses exponents this large, so set the bit directly.
+     */
+    private static function twoPow(int $exponent): \GMP
+    {
+        $number = gmp_init(0);
+        gmp_setbit($number, $exponent);
+
+        return $number;
+    }
+
+    private static function padWord(string $hex): string
+    {
+        if (strlen($hex) > 64) {
+            throw new \InvalidArgumentException('Encoded value does not fit into a 32-byte word');
+        }
+
+        return str_pad($hex, 64, '0', STR_PAD_LEFT);
+    }
 }

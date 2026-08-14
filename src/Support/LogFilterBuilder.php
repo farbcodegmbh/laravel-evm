@@ -265,9 +265,10 @@ class LogFilterBuilder
         $clean = strtolower(preg_replace('/^0x/', '', $hex));
 
         return match (true) {
-            str_starts_with($type, 'uint') => hexdec($clean),
+            str_starts_with($type, 'uint') => Encoding::wordToUint($clean),
+            str_starts_with($type, 'int') => Encoding::wordToInt($clean, Encoding::bitsOfType($type)),
             $type === 'address' => '0x'.substr($clean, -40),
-            $type === 'bool' => (bool) hexdec(substr($clean, -1)),
+            $type === 'bool' => ltrim($clean, '0') !== '',
             $type === 'bytes32' => '0x'.$clean,
             default => $hex,
         };
@@ -284,9 +285,10 @@ class LogFilterBuilder
             $type = $def['type'];
             $name = $def['name'];
             $out[$name] = match (true) {
-                str_starts_with($type, 'uint') => hexdec($chunk),
+                str_starts_with($type, 'uint') => Encoding::wordToUint($chunk),
+                str_starts_with($type, 'int') => Encoding::wordToInt($chunk, Encoding::bitsOfType($type)),
                 $type === 'address' => '0x'.substr($chunk, -40),
-                $type === 'bool' => (bool) hexdec(substr($chunk, -1)),
+                $type === 'bool' => ltrim($chunk, '0') !== '',
                 $type === 'bytes32' => '0x'.$chunk,
                 $type === 'string' => trim(@hex2bin($chunk) ?: ''),
                 default => '0x'.$chunk,
