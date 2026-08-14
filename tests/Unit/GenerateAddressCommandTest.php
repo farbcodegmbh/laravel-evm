@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Artisan;
+use kornrunner\Ethereum\Address;
 
 function generateAddresses(int $count): array
 {
@@ -38,7 +39,7 @@ it('generates distinct keys', function () {
 it('derives the address from the private key it printed', function () {
     $row = generateAddresses(1)[0];
 
-    $derived = '0x'.new kornrunner\Ethereum\Address(substr($row['private_key'], 2))->get();
+    $derived = '0x'.new Address(substr($row['private_key'], 2))->get();
 
     expect(strtolower($row['address']))->toBe($derived);
 });
