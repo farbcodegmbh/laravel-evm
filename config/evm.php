@@ -11,6 +11,18 @@ return [
         env('EVM_RPC_3'),
     ])),
 
+    // JSON-RPC transport.
+    'rpc' => [
+        'timeout' => env('EVM_RPC_TIMEOUT', 10),          // seconds per request
+        'connect_timeout' => env('EVM_RPC_CONNECT_TIMEOUT', 3),
+        'tries' => env('EVM_RPC_TRIES', 2),               // transport retries per endpoint
+    ],
+
+    // Log querying.
+    'logs' => [
+        'max_chunk' => env('EVM_LOGS_MAX_CHUNK', 5000),   // blocks per eth_getLogs chunk
+    ],
+
     // Signer configuration.
     'signer' => [
         'driver' => env('EVM_SIGNER', 'private_key'),

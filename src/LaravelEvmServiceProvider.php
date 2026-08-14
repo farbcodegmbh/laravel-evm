@@ -50,7 +50,12 @@ class LaravelEvmServiceProvider extends PackageServiceProvider
 
         $this->app->singleton(RpcClient::class, fn () => new RpcHttpClient(
             config('evm.rpc_urls'),
-            (int) config('evm.chain_id', 137)
+            (int) config('evm.chain_id', 137),
+            [
+                'timeout' => (int) config('evm.rpc.timeout', 10),
+                'connect_timeout' => (int) config('evm.rpc.connect_timeout', 3),
+                'tries' => (int) config('evm.rpc.tries', 2),
+            ]
         ));
 
         $this->app->singleton(Signer::class, function () {
