@@ -2,8 +2,8 @@
 
 ## Requirements
 - PHP >= 8.4
-- Laravel >= 12
-- GMP PHP extension installed and enabled
+- Laravel >= 11
+- GMP PHP extension (`ext-gmp`) installed and enabled
 
 ## Package Install
 Install via Composer:
@@ -26,7 +26,16 @@ Publish the configuration file if you want to adjust gas padding, timeouts or fe
 ```bash
 php artisan vendor:publish --tag=evm-config
 ```
-This creates `config/evm.php` with sections for `rpc_urls`, `tx`, `fees`, and signer settings.
+This creates `config/evm.php` with sections for `rpc_urls`, `rpc`, `tx`, `fees`,
+`logs`, `tracking` and signer settings.
+
+## Transaction Tracking (Optional)
+To keep a record of every transaction, publish and run the migration:
+```bash
+php artisan vendor:publish --tag=evm-migrations
+php artisan migrate
+```
+and set `EVM_TRACKING=true`. Without it the package needs no database.
 
 ## Queue Worker (For Write Operations)
 Reads (`call`) are synchronous and do not need a queue.
@@ -37,14 +46,32 @@ Writes (`sendAsync`) dispatch a `SendTransaction` job. Behavior depends on your 
 
 Recommended production setup (Redis):
 ```bash
-php artisan queue:work --queue=evm-send --sleep=0
+php artisan queue:work --queue=evm-send --sleep=0 --timeout=400
 ```
-**Run a single worker per signing key to keep nonce ordering intact.** Advanced lifecycle details are covered under Basic Usage.
+
+`--timeout` matters: the job waits for a receipt and may replace the
+transaction, which with the shipped defaults takes up to
+`(1 + max_replacements) * confirm_timeout` seconds. The default worker timeout
+of 60 seconds would kill it mid-poll. The job declares a matching `$timeout`
+itself, so pass a value at least as large on the worker.
+
+Transactions for one signing address are serialised by a cache lock, so a
+second worker cannot race the nonce. Running one worker per signing key is
+still the simpler setup, but it is no longer the only thing standing between
+you and a nonce collision.
 
 ## Health Check
 Optionally verify connectivity before sending transactions:
 ```php
-$health = \Farbcode\LaravelEvm\Facades\EvmRpc::health(); // ['chainId'=>137,'block'=>12345678]
+$health = \Farbcode\LaravelEvm\Facades\EvmRpc::health();
+// [
+//   'rpc_urls' => 'https://rpc1.example/***',   // credentials are redacted
+//   'chainId'  => 137,
+//   'block'    => 12345678,
+//   'endpoints' => [
+//       'https://rpc1.example/***' => ['chainId' => 137, 'block' => 12345678, 'matchesConfiguredChain' => true],
+//   ],
+// ]
 ```
 If this fails, review RPC endpoints and network access.
 
