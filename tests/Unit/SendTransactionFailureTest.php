@@ -30,6 +30,8 @@ class FFailNonce implements NonceManager
     }
 
     public function markUsed(string $address, int $nonce): void {}
+
+    public function invalidate(string $address): void {}
 }
 class FFailFees implements FeePolicy
 {

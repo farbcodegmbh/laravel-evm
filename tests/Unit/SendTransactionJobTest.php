@@ -35,6 +35,8 @@ class FakeNonce implements NonceManager
     {
         $this->n = $nonce + 1;
     }
+
+    public function invalidate(string $address): void {}
 }
 class FakeFees implements FeePolicy
 {
