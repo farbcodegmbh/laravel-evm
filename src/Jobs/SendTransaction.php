@@ -16,6 +16,7 @@ use Farbcode\LaravelEvm\Events\TxReplaced;
 use Farbcode\LaravelEvm\Events\TxReverted;
 use Farbcode\LaravelEvm\Exceptions\EvmException;
 use Farbcode\LaravelEvm\Exceptions\RpcException;
+use Farbcode\LaravelEvm\Support\FeeSnapshot;
 use Farbcode\LaravelEvm\Support\Receipt;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -91,8 +92,7 @@ class SendTransaction implements ShouldQueue, ShouldQueueAfterCommit
         });
 
         // Fees
-        $gasPriceHex = $rpc->call('eth_gasPrice');
-        [$prio, $max] = $fees->suggest(fn () => $gasPriceHex);
+        [$prio, $max] = $fees->suggest(FeeSnapshot::fromRpc($rpc));
 
         $fields = [
             'chainId' => $this->chainId,

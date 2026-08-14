@@ -8,6 +8,7 @@ use Farbcode\LaravelEvm\Crypto\PrivateKeySigner;
 use Farbcode\LaravelEvm\Events\TxMined;
 use Farbcode\LaravelEvm\Events\TxReverted;
 use Farbcode\LaravelEvm\Jobs\SendTransaction;
+use Farbcode\LaravelEvm\Support\FeeSnapshot;
 use Farbcode\LaravelEvm\Support\Receipt;
 use Illuminate\Support\Facades\Event;
 
@@ -50,7 +51,7 @@ class ReceiptNonce implements NonceManager
 
 class ReceiptFees implements FeePolicy
 {
-    public function suggest(callable $gasPriceFetcher): array
+    public function suggest(FeeSnapshot $snapshot): array
     {
         return [1_000_000_000, 50_000_000_000];
     }
