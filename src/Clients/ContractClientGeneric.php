@@ -9,6 +9,7 @@ use Farbcode\LaravelEvm\Contracts\Signer;
 use Farbcode\LaravelEvm\Events\CallPerformed;
 use Farbcode\LaravelEvm\Jobs\SendTransaction;
 use Farbcode\LaravelEvm\Support\CallResult;
+use Illuminate\Support\Str;
 
 class ContractClientGeneric implements ContractClient
 {
@@ -74,7 +75,7 @@ class ContractClientGeneric implements ContractClient
         $queue = (string) ($this->txCfg['queue'] ?? 'evm-send');
 
         // Generate a pseudo job identifier (not the queue internal ID) for tracking
-        $requestId = \Illuminate\Support\Str::uuid()->toString();
+        $requestId = Str::uuid()->toString();
         dispatch(new SendTransaction(
             address: $this->address,
             data: $data,

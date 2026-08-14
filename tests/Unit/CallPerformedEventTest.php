@@ -5,6 +5,7 @@ use Farbcode\LaravelEvm\Contracts\AbiCodec;
 use Farbcode\LaravelEvm\Contracts\RpcClient;
 use Farbcode\LaravelEvm\Contracts\Signer;
 use Farbcode\LaravelEvm\Events\CallPerformed;
+use Farbcode\LaravelEvm\Support\CallResult;
 use Illuminate\Support\Facades\Event;
 
 class TestSigner implements Signer
@@ -63,6 +64,6 @@ it('dispatches CallPerformed on read calls', function () {
     $client = new ContractClientGeneric(new TestRpc, new TestSigner, new TestAbi, 137, []);
     $client->at('0xcontract', []);
     $res = $client->call('foo', ['arg1']);
-    expect($res)->toBeInstanceOf(\Farbcode\LaravelEvm\Support\CallResult::class);
+    expect($res)->toBeInstanceOf(CallResult::class);
     Event::assertDispatched(CallPerformed::class, fn (CallPerformed $e) => $e->function === 'foo' && $e->address === '0xcontract');
 });
