@@ -25,12 +25,18 @@ class ContractClientGeneric implements ContractClient
 
     private array|string $abiJson = [];
 
+    /**
+     * Returns a new handle bound to the given contract. It deliberately does not
+     * mutate the receiver: the container hands out one client, so mutating it
+     * would silently retarget every handle taken from it earlier.
+     */
     public function at(string $address, array|string $abi = []): self
     {
-        $this->address = $address;
-        $this->abiJson = $abi;
+        $bound = clone $this;
+        $bound->address = $address;
+        $bound->abiJson = $abi;
 
-        return $this;
+        return $bound;
     }
 
     public function call(string $function, array $args = []): mixed
