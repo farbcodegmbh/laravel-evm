@@ -2,7 +2,7 @@
 
 ## Requirements
 - PHP >= 8.4
-- Laravel >= 11
+- Laravel 11, 12 or 13
 - GMP PHP extension (`ext-gmp`) installed and enabled
 
 ## Package Install
