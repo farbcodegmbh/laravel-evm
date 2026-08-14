@@ -16,6 +16,14 @@ interface ContractClient
 
     /**
      * Enqueue a non blocking write job. Returns job id string.
+     *
+     * $opts accepts:
+     *   value             wei to send with a payable call, as an int, a decimal
+     *                     string or 0x-hex. Validated when the job is queued.
+     *   timeout           seconds to wait for a receipt before replacing
+     *   poll_ms           receipt poll interval
+     *   max_replacements  fee bump attempts
+     *
      * Optional $payload allows attaching any serializable context (e.g. an Eloquent model) that will
      * be forwarded to all transaction lifecycle events (TxQueued, TxBroadcasted, TxReplaced, TxMined, TxFailed).
      */

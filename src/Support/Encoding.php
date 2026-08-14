@@ -44,6 +44,30 @@ class Encoding
     }
 
     /**
+     * Render a non-negative integer as an RLP quantity: 0x plus the shortest
+     * hex representation, no leading zeros.
+     *
+     * Transaction fields must not be handed to the RLP encoder as bare decimal
+     * strings. web3p/rlp routes anything without a 0x prefix through its string
+     * encoder, so "1000" would be encoded as the four ASCII characters rather
+     * than as the number.
+     */
+    public static function toHexQuantity(int|string $value): string
+    {
+        $number = self::toGmp($value);
+
+        if (gmp_sign($number) < 0) {
+            throw new \InvalidArgumentException('Quantity must not be negative, got: '.$value);
+        }
+
+        if (gmp_cmp($number, gmp_sub(self::twoPow(256), 1)) > 0) {
+            throw new \InvalidArgumentException('Quantity exceeds the range of uint256');
+        }
+
+        return '0x'.gmp_strval($number, 16);
+    }
+
+    /**
      * Validate an address and return it lowercased with a 0x prefix.
      */
     public static function normalizeAddress(string $address): string
