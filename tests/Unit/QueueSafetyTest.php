@@ -117,8 +117,12 @@ function safetyJob(array $opts = []): SendTransaction
     );
 }
 
-it('never retries, because a second attempt would broadcast a second transaction', function () {
-    expect(safetyJob()->tries)->toBe(1);
+it('bounds its lifetime instead of its attempt count', function () {
+    // A WithoutOverlapping release counts as an attempt, so maxTries = 1 would
+    // fail the job the first time another transaction for the signer is in
+    // flight. retryUntil() bounds it without that side effect.
+    expect(safetyJob()->retryUntil()->getTimestamp())
+        ->toBeGreaterThan(now()->addSeconds(safetyJob()->timeout)->getTimestamp());
 });
 
 it('claims a worker timeout that covers every replacement window', function () {
