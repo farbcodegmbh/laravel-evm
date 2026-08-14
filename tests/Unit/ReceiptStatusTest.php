@@ -4,25 +4,35 @@ use Farbcode\LaravelEvm\Contracts\FeePolicy;
 use Farbcode\LaravelEvm\Contracts\NonceManager;
 use Farbcode\LaravelEvm\Contracts\RpcClient;
 use Farbcode\LaravelEvm\Contracts\Signer;
+use Farbcode\LaravelEvm\Crypto\PrivateKeySigner;
 use Farbcode\LaravelEvm\Events\TxMined;
 use Farbcode\LaravelEvm\Events\TxReverted;
 use Farbcode\LaravelEvm\Jobs\SendTransaction;
 use Farbcode\LaravelEvm\Support\Receipt;
 use Illuminate\Support\Facades\Event;
-use kornrunner\Ethereum\Address;
 
 const RECEIPT_TEST_KEY = '0x4c0883a69102937d6231471b5dbb6204fe5129617082792ae468d01a3f362318';
 
+/**
+ * Delegates to the real signer so these tests still exercise actual signing.
+ */
 class ReceiptSigner implements Signer
 {
-    public function getAddress(): string
+    private PrivateKeySigner $inner;
+
+    public function __construct()
     {
-        return '0x'.new Address(substr(RECEIPT_TEST_KEY, 2))->get();
+        $this->inner = new PrivateKeySigner(RECEIPT_TEST_KEY);
     }
 
-    public function privateKey(): string
+    public function getAddress(): string
     {
-        return RECEIPT_TEST_KEY;
+        return $this->inner->getAddress();
+    }
+
+    public function sign(array $fields): string
+    {
+        return $this->inner->sign($fields);
     }
 }
 

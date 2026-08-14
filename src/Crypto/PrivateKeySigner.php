@@ -7,6 +7,8 @@ namespace Farbcode\LaravelEvm\Crypto;
 use Farbcode\LaravelEvm\Contracts\Signer;
 use Farbcode\LaravelEvm\Exceptions\SignerException;
 use kornrunner\Ethereum\Address;
+use Throwable;
+use Web3p\EthereumTx\EIP1559Transaction;
 
 class PrivateKeySigner implements Signer
 {
@@ -26,9 +28,16 @@ class PrivateKeySigner implements Signer
         return '0x'.$address->get();
     }
 
-    // expose for internal sign only if needed
-    public function privateKey(): string
+    public function sign(array $fields): string
     {
-        return $this->privateKey;
+        try {
+            $raw = new EIP1559Transaction($fields)->sign($this->privateKey);
+        } catch (Throwable $e) {
+            // Never re-throw the original: PHP records argument values in stack
+            // traces, and the call that failed received the private key.
+            throw new SignerException('Signing the transaction failed: '.$e->getMessage());
+        }
+
+        return str_starts_with($raw, '0x') ? $raw : '0x'.$raw;
     }
 }

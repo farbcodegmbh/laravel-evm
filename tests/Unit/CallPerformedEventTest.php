@@ -15,9 +15,9 @@ class TestSigner implements Signer
         return '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef';
     }
 
-    public function privateKey(): string
+    public function sign(array $fields): string
     {
-        return '0x'.str_repeat('aa', 64);
+        return '0xsigned';
     }
 }
 class TestRpc implements RpcClient
