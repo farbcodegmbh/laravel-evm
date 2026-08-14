@@ -6,6 +6,7 @@ namespace Farbcode\LaravelEvm\Crypto;
 
 use Farbcode\LaravelEvm\Contracts\Signer;
 use Farbcode\LaravelEvm\Exceptions\SignerException;
+use Farbcode\LaravelEvm\Support\Requirements;
 use kornrunner\Ethereum\Address;
 use Throwable;
 use Web3p\EthereumTx\EIP1559Transaction;
@@ -14,6 +15,10 @@ class PrivateKeySigner implements Signer
 {
     public function __construct(private ?string $privateKey)
     {
+        // kornrunner/ethereum-address calls gmp_init() in its own constructor,
+        // so this path needs the extension without ever touching Encoding.
+        Requirements::gmp();
+
         if (! $privateKey || ! preg_match('/^0x[a-fA-F0-9]{64}$/', $privateKey)) {
             throw new SignerException('Invalid private key format');
         }

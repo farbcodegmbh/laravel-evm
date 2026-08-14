@@ -15,7 +15,6 @@ use Farbcode\LaravelEvm\Contracts\Signer;
 use Farbcode\LaravelEvm\Contracts\TransactionStore;
 use Farbcode\LaravelEvm\Crypto\LocalNonceManager;
 use Farbcode\LaravelEvm\Crypto\PrivateKeySigner;
-use Farbcode\LaravelEvm\Exceptions\RequirementException;
 use Farbcode\LaravelEvm\Support\EloquentTransactionStore;
 use Farbcode\LaravelEvm\Support\LogFilterBuilder;
 use Farbcode\LaravelEvm\Support\NullTransactionStore;
@@ -44,12 +43,10 @@ class LaravelEvmServiceProvider extends PackageServiceProvider
 
     public function packageRegistered(): void
     {
-        // Runtime environment guard: ensure GMP extension is loaded.
-        // This package relies on big integer math (Keccak, RLP, transaction signing).
-        if (! extension_loaded('gmp')) {
-            throw new RequirementException('The GMP PHP extension is required for laravel-evm. Please enable it: e.g. install with `apt install php-gmp` or add `extension=gmp` to your php.ini and restart PHP-FPM / CLI.');
-        }
-
+        // No environment guard here. register() runs on every request and every
+        // artisan command, so throwing would take the whole application down
+        // over a feature it may never use. GMP is checked in Support\Requirements
+        // where the big integer math actually happens.
         $this->app->singleton(RpcClient::class, fn () => new RpcHttpClient(
             config('evm.rpc_urls'),
             (int) config('evm.chain_id', 137),

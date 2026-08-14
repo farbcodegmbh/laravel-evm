@@ -199,6 +199,8 @@ class Encoding
 
     private static function toGmp(int|string $value): \GMP
     {
+        Requirements::gmp();
+
         if (is_int($value)) {
             return gmp_init($value, 10);
         }
@@ -218,6 +220,8 @@ class Encoding
 
     private static function hexToGmp(string $hex): \GMP
     {
+        Requirements::gmp();
+
         $clean = preg_replace('/^0[xX]/', '', trim($hex));
 
         if ($clean === '') {
