@@ -27,7 +27,8 @@ jobs:
         stability: [prefer-lowest, prefer-stable]
         include:
           - laravel: 11.*
-            testbench: 9.*
+            # 9.0 ships a workbench:build that cannot resolve canvas commands
+            testbench: ^9.5
           - laravel: 12.*
             testbench: 10.*
 
