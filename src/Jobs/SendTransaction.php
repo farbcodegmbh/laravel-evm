@@ -14,28 +14,76 @@ use Farbcode\LaravelEvm\Events\TxMined;
 use Farbcode\LaravelEvm\Events\TxQueued;
 use Farbcode\LaravelEvm\Events\TxReplaced;
 use Farbcode\LaravelEvm\Events\TxReverted;
+use Farbcode\LaravelEvm\Exceptions\EvmException;
+use Farbcode\LaravelEvm\Exceptions\RpcException;
 use Farbcode\LaravelEvm\Support\Receipt;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Contracts\Queue\ShouldQueueAfterCommit;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 use Web3p\EthereumTx\EIP1559Transaction;
 
 /**
- * Sends a transaction non blocking
- * Handles gas estimation nonce retrieval fee suggestion and replacements
+ * Sends a transaction non blocking.
+ * Handles gas estimation, nonce retrieval, fee suggestion and replacements.
+ *
+ * The job broadcasts an irreversible action, which shapes two of its settings:
+ * it must never be replayed (tries = 1), and it must not run before the
+ * database transaction that authorised it has committed (ShouldQueueAfterCommit).
  */
-class SendTransaction implements ShouldQueue
+class SendTransaction implements ShouldQueue, ShouldQueueAfterCommit
 {
     use InteractsWithQueue, Queueable, SerializesModels;
 
-    public function __construct(public string $address, public string $data, public array $opts, public int $chainId, public array $txCfg, public mixed $payload = null) {}
+    /**
+     * Never retry. handle() is not idempotent: a second attempt would sign the
+     * same call again under the next nonce and execute it twice on chain.
+     */
+    public int $tries = 1;
+
+    /**
+     * Room for the initial confirmation window plus every replacement window.
+     * Without this the worker's default 60s timeout kills the job mid-poll,
+     * long before the replacement path is ever reached.
+     */
+    public int $timeout;
+
+    private const TIMEOUT_SLACK_SECONDS = 30;
+
+    /**
+     * Every hash signed for this nonce. A replacement does not invalidate its
+     * predecessors, so all of them stay in the race until one is mined.
+     *
+     * @var list<string>
+     */
+    private array $hashes = [];
+
+    public function __construct(
+        public string $address,
+        public string $data,
+        public array $opts,
+        public int $chainId,
+        public array $txCfg,
+        public mixed $payload = null,
+    ) {
+        $this->timeout = $this->confirmTimeout() * (1 + $this->maxReplacements()) + self::TIMEOUT_SLACK_SECONDS;
+    }
 
     public function handle(RpcClient $rpc, Signer $signer, NonceManager $nonces, FeePolicy $fees): void
     {
         event(new TxQueued($this->address, $this->data, $this->payload));
 
         $from = $signer->getAddress();
+
+        $pk = method_exists($signer, 'privateKey') ? $signer->privateKey() : null;
+        if (! $pk) {
+            $this->terminate('signer_has_no_private_key');
+
+            return;
+        }
 
         // Estimate gas with padding
         $est = $rpc->call('eth_estimateGas', [[
@@ -67,81 +115,111 @@ class SendTransaction implements ShouldQueue
             'accessList' => [],
         ];
 
-        $pk = method_exists($signer, 'privateKey') ? $signer->privateKey() : null;
-        if (! $pk) {
-            event(new TxFailed($this->address, $this->data, 'Signer has no privateKey method', $this->payload));
-
-            return;
-        }
-
-        // First broadcast with error handling
         try {
-            $raw = new EIP1559Transaction($fields)->sign($pk);
-            $rawHex = str_starts_with($raw, '0x') ? $raw : '0x'.$raw; // ensure 0x prefix
-            $txHash = $rpc->call('eth_sendRawTransaction', [$rawHex]);
+            $txHash = $this->signAndSend($rpc, $fields, $pk);
             $nonces->markUsed($from, $nonce);
             event(new TxBroadcasted($txHash, $fields, $this->payload));
-
-        } catch (\Throwable $e) {
-            event(new TxFailed($this->address, $this->data, 'rpc_send_error: '.$e->getMessage(), $this->payload));
+        } catch (Throwable $e) {
+            $this->terminate('rpc_send_error: '.$e->getMessage());
 
             return;
         }
 
-        $timeout = (int) ($this->opts['timeout'] ?? $this->txCfg['confirm_timeout']);
-        $pollMs = (int) ($this->opts['poll_ms'] ?? $this->txCfg['poll_interval_ms']);
-        $maxRep = (int) ($this->opts['max_replacements'] ?? $this->txCfg['max_replacements']);
+        $timeout = $this->confirmTimeout();
+        $pollMs = $this->pollIntervalMs();
+        $maxRep = $this->maxReplacements();
 
-        $deadline = time() + $timeout;
-        while (time() < $deadline) {
-            $rec = $rpc->call('eth_getTransactionReceipt', [$txHash]);
-            if (is_array($rec) && $rec !== []) {
-                $this->settle($txHash, $rec);
+        $replacementsLeft = $maxRep;
 
+        while (true) {
+            if ($this->settleIfMined($rpc, $timeout, $pollMs)) {
                 return;
             }
-            usleep($pollMs * 1000);
-        }
 
-        // Replacements if still pending
-        for ($i = 0; $i < $maxRep; $i++) {
-            $oldTxHash = $txHash;
+            if ($replacementsLeft <= 0) {
+                break;
+            }
+
+            $attempt = $maxRep - $replacementsLeft + 1;
+            $replacementsLeft--;
+
             [$prio, $max] = $fees->replace($prio, $max);
             $fields['maxPriorityFeePerGas'] = $prio;
             $fields['maxFeePerGas'] = $max;
 
-            // Emit replacement attempt (before rebroadcast)
-            event(new TxReplaced($oldTxHash, $fields, $i + 1, $this->payload));
+            event(new TxReplaced($txHash, $fields, $attempt, $this->payload));
 
             try {
-                $raw = new EIP1559Transaction($fields)->sign($pk);
-                $rawHex = str_starts_with($raw, '0x') ? $raw : '0x'.$raw; // ensure 0x prefix
-                $txHash = $rpc->call('eth_sendRawTransaction', [$rawHex]);
+                $txHash = $this->signAndSend($rpc, $fields, $pk);
                 event(new TxBroadcasted($txHash, $fields, $this->payload));
-            } catch (\Throwable $e) {
-                event(new TxFailed($this->address, $this->data, 'rpc_send_error_replacement_'.$i.': '.$e->getMessage(), $this->payload));
+            } catch (Throwable $e) {
+                // A rejected replacement usually means an earlier transaction
+                // for this nonce was mined. Stop replacing, but loop once more
+                // so the hashes already in flight get their polling window.
+                Log::warning('laravel-evm: replacement broadcast failed', [
+                    'attempt' => $attempt,
+                    'nonce' => $nonce,
+                    'error' => $e->getMessage(),
+                ]);
 
-                return;
-            }
-
-            $deadline = time() + $timeout;
-            while (time() < $deadline) {
-                $rec = $rpc->call('eth_getTransactionReceipt', [$txHash]);
-                if (is_array($rec) && $rec !== []) {
-                    $this->settle($txHash, $rec);
-
-                    return;
-                }
-                usleep($pollMs * 1000);
+                $replacementsLeft = 0;
             }
         }
 
-        event(new TxFailed(
-            $this->address,
-            $this->data,
-            sprintf('no_receipt_after_%d_replacements (last maxFee=%d priority=%d)', $maxRep, $fields['maxFeePerGas'], $fields['maxPriorityFeePerGas']),
-            $this->payload
-        ));
+        $this->terminate($this->exhaustedReason($rpc, $from, $nonce, $maxRep, $fields));
+    }
+
+    private function signAndSend(RpcClient $rpc, array $fields, string $privateKey): string
+    {
+        $raw = new EIP1559Transaction($fields)->sign($privateKey);
+        $rawHex = str_starts_with($raw, '0x') ? $raw : '0x'.$raw; // ensure 0x prefix
+
+        $txHash = $rpc->call('eth_sendRawTransaction', [$rawHex]);
+
+        if (! is_string($txHash) || $txHash === '') {
+            throw new RpcException('eth_sendRawTransaction did not return a transaction hash');
+        }
+
+        $this->hashes[] = $txHash;
+
+        return $txHash;
+    }
+
+    /**
+     * Poll every hash signed for this nonce until one has a receipt or the
+     * window closes. Returns true when the outcome has been reported.
+     */
+    private function settleIfMined(RpcClient $rpc, int $timeout, int $pollMs): bool
+    {
+        $deadline = time() + $timeout;
+
+        while (time() < $deadline) {
+            foreach ($this->hashes as $hash) {
+                try {
+                    $receipt = $rpc->call('eth_getTransactionReceipt', [$hash]);
+                } catch (Throwable $e) {
+                    // The transaction is already broadcast and only the lookup
+                    // failed. Letting this escape would abandon a transaction
+                    // that is on its way, so keep polling until the deadline.
+                    Log::warning('laravel-evm: receipt lookup failed', [
+                        'tx' => $hash,
+                        'error' => $e->getMessage(),
+                    ]);
+
+                    continue;
+                }
+
+                if (is_array($receipt) && $receipt !== []) {
+                    $this->settle($hash, $receipt);
+
+                    return true;
+                }
+            }
+
+            usleep($pollMs * 1000);
+        }
+
+        return false;
     }
 
     /**
@@ -157,5 +235,58 @@ class SendTransaction implements ShouldQueue
         }
 
         event(new TxMined($txHash, $receipt, $this->payload));
+    }
+
+    /**
+     * Report a terminal failure on both channels: the TxFailed event for domain
+     * listeners, and the queue itself so that failed_jobs, Horizon and Telescope
+     * show the failure instead of a job that looks like it succeeded.
+     */
+    private function terminate(string $reason): void
+    {
+        event(new TxFailed($this->address, $this->data, $reason, $this->payload));
+
+        $this->fail(new EvmException($reason));
+    }
+
+    /**
+     * A consumed nonce means one of our transactions did make it on chain and
+     * only the receipt lookup kept missing it, which is worth saying out loud.
+     */
+    private function exhaustedReason(RpcClient $rpc, string $from, int $nonce, int $maxRep, array $fields): string
+    {
+        $reason = sprintf(
+            'no_receipt_after_%d_replacements (last maxFee=%s priority=%s)',
+            $maxRep,
+            $fields['maxFeePerGas'],
+            $fields['maxPriorityFeePerGas'],
+        );
+
+        try {
+            $mined = (int) hexdec((string) $rpc->call('eth_getTransactionCount', [$from, 'latest']));
+        } catch (Throwable) {
+            return $reason;
+        }
+
+        if ($mined > $nonce) {
+            return $reason.sprintf(' - nonce %d was consumed on chain, one of %d broadcast transactions may have been mined', $nonce, count($this->hashes));
+        }
+
+        return $reason;
+    }
+
+    private function confirmTimeout(): int
+    {
+        return (int) ($this->opts['timeout'] ?? $this->txCfg['confirm_timeout'] ?? 120);
+    }
+
+    private function pollIntervalMs(): int
+    {
+        return (int) ($this->opts['poll_ms'] ?? $this->txCfg['poll_interval_ms'] ?? 800);
+    }
+
+    private function maxReplacements(): int
+    {
+        return (int) ($this->opts['max_replacements'] ?? $this->txCfg['max_replacements'] ?? 2);
     }
 }
