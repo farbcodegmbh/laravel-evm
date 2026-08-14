@@ -4,6 +4,7 @@
 
 namespace Farbcode\LaravelEvm\Jobs;
 
+use DateTimeInterface;
 use Farbcode\LaravelEvm\Contracts\FeePolicy;
 use Farbcode\LaravelEvm\Contracts\NonceManager;
 use Farbcode\LaravelEvm\Contracts\RpcClient;
@@ -23,6 +24,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Contracts\Queue\ShouldQueueAfterCommit;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\Middleware\WithoutOverlapping;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -40,10 +42,46 @@ class SendTransaction implements ShouldQueue, ShouldQueueAfterCommit
     use InteractsWithQueue, Queueable, SerializesModels;
 
     /**
-     * Never retry. handle() is not idempotent: a second attempt would sign the
-     * same call again under the next nonce and execute it twice on chain.
+     * maxTries is deliberately not set. WithoutOverlapping releases the job
+     * when another transaction for the same signer is in flight, and a release
+     * counts as an attempt - with maxTries = 1 the first release would fail the
+     * job outright. retryUntil() bounds the lifetime instead.
+     *
+     * That is only safe because no attempt can broadcast twice: everything
+     * after the send is either caught or ends in terminate(), which calls
+     * fail() and does not retry. The only work an attempt can repeat is gas
+     * estimation, the nonce read and the fee snapshot, none of which touch the
+     * chain.
      */
-    public int $tries = 1;
+    public function retryUntil(): DateTimeInterface
+    {
+        return now()->addSeconds($this->timeout * 2 + self::LOCK_RELEASE_SECONDS);
+    }
+
+    /**
+     * One signing address, one transaction at a time.
+     *
+     * The documentation asks operators to run a single worker per signing
+     * address so that nonces stay ordered. Nothing enforced it, and a second
+     * worker - or a Horizon supervisor scaled past one process - silently
+     * raced the nonce. A cache lock keyed on the signer enforces it regardless
+     * of how many workers are running.
+     */
+    public function middleware(): array
+    {
+        return [
+            new WithoutOverlapping($this->lockKey())
+                ->releaseAfter(self::LOCK_RELEASE_SECONDS)
+                // The lock must outlive the job itself, or a killed worker
+                // would leave the next transaction free to race it.
+                ->expireAfter($this->timeout + 60),
+        ];
+    }
+
+    private function lockKey(): string
+    {
+        return 'laravel-evm:signer:'.strtolower(app(Signer::class)->getAddress());
+    }
 
     /**
      * Room for the initial confirmation window plus every replacement window.
@@ -53,6 +91,8 @@ class SendTransaction implements ShouldQueue, ShouldQueueAfterCommit
     public int $timeout;
 
     private const TIMEOUT_SLACK_SECONDS = 30;
+
+    private const LOCK_RELEASE_SECONDS = 5;
 
     /**
      * Every hash signed for this nonce. A replacement does not invalidate its
