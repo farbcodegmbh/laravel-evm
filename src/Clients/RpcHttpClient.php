@@ -50,7 +50,8 @@ class RpcHttpClient implements RpcClient
         $lastError = null;
 
         for ($i = 0; $i < $attempts; $i++) {
-            $url = $this->urls[$this->cursor % count($this->urls)];
+            $index = $this->cursor % count($this->urls);
+            $url = $this->urls[$index];
             $this->cursor++;
 
             try {
@@ -72,7 +73,7 @@ class RpcHttpClient implements RpcClient
                     if (is_array($json) && isset($json['error'])) {
                         $lastError = $json['error']['message'] ?? 'RPC error';
                         Log::warning('RPC error body', [
-                            'url' => $url,
+                            'endpoint' => $this->describe($index),
                             'method' => $method,
                             'id' => $id,
                             'error' => $json['error'],
@@ -89,7 +90,7 @@ class RpcHttpClient implements RpcClient
                     // Unexpected body shape
                     $lastError = 'Invalid JSON body';
                     Log::warning('RPC invalid json', [
-                        'url' => $url,
+                        'endpoint' => $this->describe($index),
                         'method' => $method,
                         'id' => $id,
                         'body' => $response->body(),
@@ -101,7 +102,7 @@ class RpcHttpClient implements RpcClient
                 // Non success HTTP
                 $lastError = 'HTTP '.$response->status();
                 Log::warning('RPC non success', [
-                    'url' => $url,
+                    'endpoint' => $this->describe($index),
                     'method' => $method,
                     'id' => $id,
                     'status' => $response->status(),
@@ -112,7 +113,7 @@ class RpcHttpClient implements RpcClient
                 // Network or timeout
                 $lastError = $e->getMessage();
                 Log::error('RPC exception', [
-                    'url' => $url,
+                    'endpoint' => $this->describe($index),
                     'method' => $method,
                     'id' => $id,
                     'error' => $lastError,
@@ -154,10 +155,44 @@ class RpcHttpClient implements RpcClient
         $bnHex = $this->call('eth_blockNumber');
 
         return [
-            'rpc_urls' => implode(', ', $this->urls),
+            'rpc_urls' => implode(', ', array_map(self::redact(...), $this->urls)),
             'chainId' => is_string($idHex) ? hexdec($idHex) : (int) $idHex,
             'block' => is_string($bnHex) ? hexdec($bnHex) : (int) $bnHex,
         ];
+    }
+
+    /**
+     * Identify an endpoint in a log line without disclosing its credentials.
+     */
+    private function describe(int $index): string
+    {
+        return '#'.$index.' '.self::redact($this->urls[$index]);
+    }
+
+    /**
+     * Provider URLs normally carry the API key in the path or the query string,
+     * so only the scheme, host and port may be shown. Everything that could
+     * hold a secret is replaced, not shortened.
+     */
+    public static function redact(string $url): string
+    {
+        $parts = parse_url($url);
+
+        if ($parts === false || ! isset($parts['host'])) {
+            return '[unparsable url]';
+        }
+
+        $base = ($parts['scheme'] ?? 'https').'://'.$parts['host'];
+
+        if (isset($parts['port'])) {
+            $base .= ':'.$parts['port'];
+        }
+
+        $carriesSecret = isset($parts['user'])
+            || isset($parts['query'])
+            || ! in_array($parts['path'] ?? '', ['', '/'], true);
+
+        return $carriesSecret ? $base.'/***' : $base;
     }
 
     /**

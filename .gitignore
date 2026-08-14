@@ -24,6 +24,10 @@ _ide_helper_models.php
 /.fleet
 /.vscode
 
+# Environment - `composer build` copies workbench/.env here
+.env
+.env.*
+
 # Misc
 phpunit.xml
 phpstan.neon
