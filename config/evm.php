@@ -42,6 +42,12 @@ return [
         'replacement_factor' => env('EVM_REPLACEMENT_FACTOR', 1.5),
     ],
 
+    // Optional persistence of the transaction lifecycle. Publish and run the
+    // migration first: php artisan vendor:publish --tag="evm-migrations"
+    'tracking' => [
+        'enabled' => env('EVM_TRACKING', false),
+    ],
+
     // Transaction behavior.
     'tx' => [
         'estimate_padding' => env('EVM_ESTIMATE_PADDING', 1.2),

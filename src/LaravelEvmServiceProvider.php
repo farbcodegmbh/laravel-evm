@@ -12,12 +12,15 @@ use Farbcode\LaravelEvm\Contracts\FeePolicy;
 use Farbcode\LaravelEvm\Contracts\NonceManager;
 use Farbcode\LaravelEvm\Contracts\RpcClient;
 use Farbcode\LaravelEvm\Contracts\Signer;
+use Farbcode\LaravelEvm\Contracts\TransactionStore;
 use Farbcode\LaravelEvm\Contracts\TxBuilder;
 use Farbcode\LaravelEvm\Crypto\LocalNonceManager;
 use Farbcode\LaravelEvm\Crypto\PrivateKeySigner;
 use Farbcode\LaravelEvm\Crypto\TxBuilderEip1559;
 use Farbcode\LaravelEvm\Exceptions\RequirementException;
+use Farbcode\LaravelEvm\Support\EloquentTransactionStore;
 use Farbcode\LaravelEvm\Support\LogFilterBuilder;
+use Farbcode\LaravelEvm\Support\NullTransactionStore;
 use Farbcode\LaravelEvm\Support\SimpleFeePolicy;
 use Illuminate\Contracts\Foundation\Application;
 use Spatie\LaravelPackageTools\Package;
@@ -35,6 +38,7 @@ class LaravelEvmServiceProvider extends PackageServiceProvider
         $package
             ->name('laravel-evm')
             ->hasConfigFile()
+            ->hasMigration('create_evm_transactions_table')
             ->hasCommands([
                 EvmGenerateAddressCommand::class,
             ]);
@@ -65,6 +69,10 @@ class LaravelEvmServiceProvider extends PackageServiceProvider
             }
             throw new \RuntimeException('Signer driver not implemented');
         });
+
+        $this->app->singleton(TransactionStore::class, fn () => config('evm.tracking.enabled', false)
+            ? new EloquentTransactionStore
+            : new NullTransactionStore);
 
         $this->app->singleton(NonceManager::class, fn () => new LocalNonceManager);
         $this->app->singleton(FeePolicy::class, fn () => new SimpleFeePolicy(config('evm.fees')));
