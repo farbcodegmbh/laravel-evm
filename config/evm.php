@@ -51,6 +51,10 @@ return [
     // Transaction behavior.
     'tx' => [
         'estimate_padding' => env('EVM_ESTIMATE_PADDING', 1.2),
+        // Lower bound for the gas limit. The node reserves maxFeePerGas * gas
+        // from the balance regardless of what is consumed, so a floor above the
+        // padded estimate only ties up funds.
+        'gas_floor' => env('EVM_GAS_FLOOR', 21000),
         'confirm_timeout' => env('EVM_CONFIRM_TIMEOUT', 120), // seconds
         'max_replacements' => env('EVM_MAX_REPLACEMENTS', 2),
         'poll_interval_ms' => env('EVM_POLL_INTERVAL_MS', 800),

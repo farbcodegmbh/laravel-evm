@@ -21,7 +21,8 @@ class Encoding
             throw new \InvalidArgumentException('Input exceeds 32 bytes and truncate disabled');
         }
         if ($len > 32) {
-            $bin = substr($bin, 0, 32);
+            // On a character boundary, so the result stays valid UTF-8
+            $bin = mb_strcut($bin, 0, 32, 'UTF-8');
         }
         $hex = bin2hex($bin);
         $hex = str_pad($hex, 64, '0');

@@ -107,6 +107,25 @@ working.
 
 `callRaw()` now returns error envelopes instead of failing over past them.
 
+### Removed classes
+
+Both were dead: `GasException` was never thrown anywhere in the package, and
+`TxBuilder` / `TxBuilderEip1559` were bound in the container but never
+resolved — signing now lives behind the `Signer` contract.
+
+| Removed | Use instead |
+| --- | --- |
+| `GasException` | `RpcErrorException`, which a failed estimate already raises |
+| `TxBuilder`, `TxBuilderEip1559` | `Signer::sign()` |
+
+### Gas floor
+
+The hard-coded 150 000 gas lower bound is now `evm.tx.gas_floor`, defaulting to
+21 000. The node reserves `maxFeePerGas * gas` from the balance regardless of
+what is actually consumed, so the old floor tied up seven times the funds a
+plain transfer needs. `estimateGas()` no longer applies a floor at all — it is
+a cost preview, so the padded estimate stands on its own.
+
 ### Contract changes
 
 Custom implementations need updating:

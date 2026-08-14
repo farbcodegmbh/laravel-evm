@@ -18,13 +18,17 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 5
     strategy:
-      fail-fast: true
+      # See every failing combination, not just the first
+      fail-fast: false
       matrix:
         os: [ubuntu-latest]
         php: [8.4]
-        laravel: [12.*]
+        laravel: [11.*, 12.*]
         stability: [prefer-lowest, prefer-stable]
         include:
+          - laravel: 11.*
+            # 9.0 ships a workbench:build that cannot resolve canvas commands
+            testbench: ^9.5
           - laravel: 12.*
             testbench: 10.*
 
@@ -38,7 +42,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php }}
-          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, soap, intl, gd, exif, iconv, imagick, fileinfo
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, bcmath, gmp, soap, intl, gd, exif, iconv, imagick, fileinfo
           coverage: none
 
       - name: Setup problem matchers
