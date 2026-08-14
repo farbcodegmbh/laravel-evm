@@ -21,16 +21,28 @@ class CallResult
     }
 
     /**
-     * Decode the result to a basic ABI type: string, bytes, uint256/uint, int256/int, bool, address.
+     * Decode the result to a basic ABI type: string, bytes, uintN, intN, bool, address.
+     *
+     * Integers are returned as decimal strings so that values beyond PHP's
+     * integer range survive intact.
      */
     public function as(string $type): mixed
     {
-        $type = strtolower($type);
+        $type = strtolower(trim($type));
+
+        if (str_starts_with($type, 'uint')) {
+            Encoding::bitsOfType($type);
+
+            return Encoding::wordToUint($this->lastWord());
+        }
+
+        if (str_starts_with($type, 'int')) {
+            return Encoding::wordToInt($this->lastWord(), Encoding::bitsOfType($type));
+        }
 
         return match ($type) {
             'string' => $this->decodeDynamicString(),
             'bytes' => $this->decodeDynamicString(),
-            'uint256', 'uint', 'int256', 'int' => $this->decodeUint256(),
             'bool' => $this->decodeBool(),
             'address' => $this->decodeAddress(),
             default => throw new \InvalidArgumentException('Unsupported type for CallResult::as(): '.$type),
@@ -69,33 +81,18 @@ class CallResult
         return $bin === false ? '' : $bin;
     }
 
-    private function decodeUint256(): int|string
+    private function lastWord(): string
     {
-        $hex = $this->strip($this->rawHex);
-        $slot = substr($hex, -64); // last 32 bytes
-        $trimmed = ltrim($slot, '0');
-        if ($trimmed === '') {
-            return 0;
-        }
-
-        // Large numbers returned as string to avoid overflow
-        return strlen($trimmed) > 15 ? $trimmed : hexdec($slot);
+        return substr($this->strip($this->rawHex), -64);
     }
 
     private function decodeBool(): bool
     {
-        $hex = $this->strip($this->rawHex);
-        $slot = substr($hex, -64);
-
-        return substr($slot, -1) === '1';
+        return ltrim($this->lastWord(), '0') !== '';
     }
 
     private function decodeAddress(): string
     {
-        $hex = $this->strip($this->rawHex);
-        $slot = substr($hex, -64);
-        $addr = substr($slot, -40);
-
-        return '0x'.$addr;
+        return '0x'.substr($this->lastWord(), -40);
     }
 }

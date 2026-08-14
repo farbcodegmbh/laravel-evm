@@ -5,6 +5,7 @@
 namespace Farbcode\LaravelEvm\Codec;
 
 use Farbcode\LaravelEvm\Contracts\AbiCodec;
+use Farbcode\LaravelEvm\Support\Encoding;
 use kornrunner\Keccak;
 
 class AbiCodecWeb3p implements AbiCodec
@@ -74,7 +75,11 @@ class AbiCodecWeb3p implements AbiCodec
     private function encodeStatic(string $type, mixed $val): string
     {
         if (str_starts_with($type, 'uint')) {
-            return str_pad(dechex((int) $val), 64, '0', STR_PAD_LEFT);
+            if (! is_int($val) && ! is_string($val)) {
+                throw new \InvalidArgumentException('Argument of type '.$type.' must be an int, a decimal string or 0x-prefixed hex');
+            }
+
+            return Encoding::uintToWord($val, Encoding::bitsOfType($type));
         }
         if ($type === 'address') {
             $clean = strtolower(preg_replace('/^0x/', '', (string) $val));
